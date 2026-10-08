@@ -86,6 +86,12 @@
 | `PlaceNotifier` | `Anosa/Notifications/PlaceNotifier.swift` | 通知の許可・カテゴリ（3 アクション）・即時通知。`UNUserNotificationCenterDelegate` で前面でもバナー表示、アクションを `NotificationActionHandler` に渡して保存・マップを開く |
 | `DebugPlaceSeeder` | `Anosa/Debug/DebugPlaceSeeder.swift` | DEBUG のみ。`-AnosaDebugAddPlace "<名前>,<緯度>,<経度>"` で場所を 1 件追加（重複は追加しない） |
 
+## iOS アプリ本体（M5: Watch 同期）
+
+| 型 | ファイル | 役割 |
+| --- | --- | --- |
+| `WatchSyncService` | `Anosa/Watch/WatchSyncService.swift` | `@MainActor`・`WCSessionDelegate`。AppDelegate で作って activate。`LocationService` がスナップショットを保存するたびに `WatchSyncContext` を applicationContext（条件つきでコンプリケーション用 userInfo）で送る。Watch から transferUserInfo で届いた「もう行った」を反映し、スナップショットを `refreshed` で作り直して保存・送信 |
+
 ## Share Extension（M2）
 
 | 型 | ファイル | 役割 |

@@ -56,5 +56,5 @@ struct ContentView: View {
 #Preview {
     ContentView()
         .modelContainer(for: PlaceEntity.self, inMemory: true)
-        .environment(LocationService(notifier: PlaceNotifier()))
+        .environment(LocationService(notifier: PlaceNotifier(), watchSync: WatchSyncService()))
 }

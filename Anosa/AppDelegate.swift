@@ -1,11 +1,12 @@
 import UIKit
 
-/// 位置情報と通知のサービスを起動時に始める。
+/// 位置情報・通知・Watch 同期のサービスを起動時に始める。
 /// significant-location-change・リージョン・通知アクションでバックグラウンドから再起動されたときも、ここを通る。
 @MainActor
 final class AppDelegate: NSObject, UIApplicationDelegate {
     let notifier = PlaceNotifier()
-    private(set) lazy var locationService = LocationService(notifier: notifier)
+    let watchSync = WatchSyncService()
+    private(set) lazy var locationService = LocationService(notifier: notifier, watchSync: watchSync)
 
     func application(
         _ application: UIApplication,
@@ -15,6 +16,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         #if DEBUG
         DebugPlaceSeeder.seedFromLaunchArguments()
         #endif
+        watchSync.activate()
         locationService.start()
         return true
     }
