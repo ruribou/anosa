@@ -6,14 +6,16 @@ import SwiftUI
 /// 保存済みの場所の一覧（1 ステータス分）。並べ替え・編集・地図表示は持たない。
 struct PlaceListView: View {
     let status: PlaceStatus
+    let onAdd: (() -> Void)?
 
     @Environment(\.modelContext) private var modelContext
     @Query private var entities: [PlaceEntity]
 
     private static let logger = Logger(subsystem: "com.example.anosa", category: "list")
 
-    init(status: PlaceStatus) {
+    init(status: PlaceStatus, onAdd: (() -> Void)? = nil) {
         self.status = status
+        self.onAdd = onAdd
         let rawValue = status.rawValue
         _entities = Query(
             filter: #Predicate<PlaceEntity> { $0.statusRawValue == rawValue },
@@ -49,11 +51,18 @@ struct PlaceListView: View {
     private var emptyView: some View {
         switch status {
         case .wantToGo:
-            ContentUnavailableView(
-                "保存したら、忘れていい。",
-                systemImage: "mappin.and.ellipse",
-                description: Text("行きたい場所は＋か共有メニューから保存できます。近くに来たら教えるね。")
-            )
+            ContentUnavailableView {
+                Label("保存したら、忘れていい。", systemImage: "mappin.and.ellipse")
+            } description: {
+                Text("ほかのアプリの共有メニューからも保存できるよ。近くに来たら教えるね。")
+            } actions: {
+                if let onAdd {
+                    Button("場所を追加", systemImage: "plus") {
+                        onAdd()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            }
         case .visited:
             ContentUnavailableView("行った場所はまだないよ", systemImage: "checkmark")
         case .archived:
