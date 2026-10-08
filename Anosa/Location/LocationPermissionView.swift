@@ -38,6 +38,7 @@ struct LocationPermissionView: View {
 
     var body: some View {
         // 大きい文字では説明がシートに収まらないため、説明だけスクロールさせ、ボタンは下に固定する。
+        // safeAreaBar にしてスクロール端の効果をシステムに任せる（独自の背景は付けない）。
         ScrollView {
             VStack(spacing: 12) {
                 Image(systemName: symbolName)
@@ -59,7 +60,7 @@ struct LocationPermissionView: View {
             .padding(.top, 32)
         }
         .scrollBounceBehavior(.basedOnSize)
-        .safeAreaInset(edge: .bottom) {
+        .safeAreaBar(edge: .bottom) {
             actions
                 .padding(.horizontal, 24)
                 .padding(.bottom, 8)

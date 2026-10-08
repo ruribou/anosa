@@ -35,14 +35,3 @@ public struct PlaceRowDetail: Hashable, Sendable {
             .joined(separator: "、")
     }
 }
-
-extension DistanceText {
-    /// `format` と同じ丸めで、単位を読み上げ向けにしたもの。例: 「650メートル」「1.2キロメートル」
-    public static func spoken(meters: Double) -> String {
-        let text = format(meters: meters)
-        if text.hasSuffix("km") {
-            return text.dropLast(2) + "キロメートル"
-        }
-        return text.dropLast(1) + "メートル"
-    }
-}

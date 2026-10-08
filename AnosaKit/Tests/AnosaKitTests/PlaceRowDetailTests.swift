@@ -65,8 +65,18 @@ struct PlaceRowDetailTests {
 
     @Test(arguments: [
         (0.0, "0メートル"), (650.0, "650メートル"), (994.0, "990メートル"), (995.0, "1.0キロメートル"), (1234.0, "1.2キロメートル"),
+        (-10.0, "0メートル"), (.nan, "0メートル"), (.infinity, "100000.0キロメートル"),
     ])
     func 読み上げ用の距離はformatと同じ丸め(meters: Double, expected: String) {
         #expect(DistanceText.spoken(meters: meters) == expected)
+    }
+
+    @Test(arguments: [0.0, 5.0, 650.0, 994.0, 995.0, 1049.0, 1234.0, 12_345.0, -10.0, .nan, .infinity])
+    func 読み上げ用の距離はformatと同じ数値(meters: Double) {
+        let shown = DistanceText.format(meters: meters)
+        let spoken = DistanceText.spoken(meters: meters)
+        let number = shown.hasSuffix("km") ? String(shown.dropLast(2)) : String(shown.dropLast(1))
+        let unit = shown.hasSuffix("km") ? "キロメートル" : "メートル"
+        #expect(spoken == number + unit)
     }
 }
