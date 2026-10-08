@@ -6,5 +6,6 @@ struct AnosaApp: App {
         WindowGroup {
             ContentView()
         }
+        .modelContainer(AppContainer.shared)
     }
 }

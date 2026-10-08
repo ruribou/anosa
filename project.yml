@@ -19,6 +19,11 @@ targets:
     platform: iOS
     sources:
       - path: Anosa
+    entitlements:
+      path: Anosa/Anosa.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.example.anosa
     info:
       path: Anosa/Info.plist
       properties:
@@ -42,6 +47,11 @@ targets:
     platform: iOS
     sources:
       - path: AnosaShare
+    entitlements:
+      path: AnosaShare/AnosaShare.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.example.anosa
     info:
       path: AnosaShare/Info.plist
       properties:
@@ -57,6 +67,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.example.anosa.share
         TARGETED_DEVICE_FAMILY: "1"
+    dependencies:
+      - package: AnosaKit
   AnosaWidget:
     type: app-extension
     platform: iOS

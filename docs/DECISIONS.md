@@ -17,3 +17,32 @@
 - 2026-10-08 M1: シミュレータ向けビルドは -sdk ではなく generic destination（scripts/ci/build-scheme.sh）で行う。-sdk iphonesimulator では Anosa に埋め込まれた Watch ターゲットまで iOS SDK でビルドされて失敗し、verify.conf の argv には空白を含む -destination を書けないため。デバイス名を指定しないので Xcode 26（CI）/ 27（手元）で同じコマンドが動き、worktree 間のシミュレータ衝突もない。
 - 2026-10-08 M1: AnosaKit のテストは swift test でホスト実行し、シミュレータ名を指定しない（手元の simctl では iOS 27 の iPhone 17 などが実在するが、検証コマンドはどのデバイス名にも依存させない）。
 - 2026-10-08 M1: xcodebuild -list に出る AnosaKit スキームはローカルパッケージから自動生成されるもの。ビルド対象スキームは5つとし、パッケージは swift test と各ターゲットのビルドで検証する。
+- 2026-10-08 M2: AnosaKit の Persistence/（PlaceEntity・AnosaStore・PlaceStore）だけ SwiftData に依存させる（M1 の「Foundation のみ」をこの部分で緩める）。判断エンジン等は引き続き Place 値型で動き、永続化モデルは保存・取得の境界でだけ変換する。
+- 2026-10-08 M2: PlaceEntity は status を rawValue の String（statusRawValue）、openingHours を JSON の Data で保存する。未知の status は「行きたい」、読めない営業時間は未設定として読む。
+- 2026-10-08 M2: App Group ID はプレースホルダー group.com.example.anosa。ストアは App Group コンテナの Anosa.store。App Group が取れない環境（署名なしのシミュレータ等）では ModelConfiguration の既定の場所にフォールバックする（この場合アプリと拡張でストアは共有されない）。
+- 2026-10-08 M2: PlaceStore は @MainActor。save は同じ id があれば全項目を上書き更新する。places は savedAt 降順。setStatus・delete は該当 id がなければ何もしない（通知アクションや Watch からの操作が削除済みの場所に届いても失敗扱いにしない）。
+- 2026-10-08 M2: ModelContext はコンテナを強参照せず、解放後の操作でクラッシュするため、PlaceStore(container:) はコンテナを保持する。PlaceStore(context:) では呼び出し側がコンテナを保持する。
+- 2026-10-08 M2: 共有入力のパース: 入力 URL とテキスト中の http(s) URL を順に見て、最初に名前か座標を読めた地図 URL を使う。Apple マップ（maps.apple.com / maps.apple）は名前を name → q → address、座標を ll → coordinate（q が座標だけなら座標）。Google マップ（maps.google.* または google.* の /maps パス）は名前を /maps/place/<名前>/・/maps/search/<名前>/ → q / query、座標を @lat,lng → q / query。+ は空白として扱う。短縮 URL（maps.app.goo.gl 等）は展開しない。
+- 2026-10-08 M2: 名前は地図 URL のものをテキストより優先し、なければテキスト（URL を除き、空白・改行を半角スペース1つにまとめたもの）を使う。地図以外の URL からはホストやパスで名前を作らず、名前も座標もなければ nil。PlaceQuery.sourceURL には使った地図 URL、なければ最初の http(s) URL を入れる。
+- 2026-10-08 M2: 場所の解決は AnosaKit の PlaceSearch に共通化する。名前検索は MKLocalSearch（座標があればその座標を中心に 1km 四方の region に寄せる）、名前のない MKMapItem は候補にしない、該当なし（MKError.placemarkNotFound）は空配列、既定の上限は 10 件。
+- 2026-10-08 M2: 座標だけのクエリは MKReverseGeocodingRequest（iOS / watchOS / macOS 26 で使える）で逆ジオコーディングし、MKMapItem の name → MKAddress.shortAddress の順で名前にする。どちらもなければ候補にしない。候補の座標は逆ジオコーディング結果ではなく共有された座標を使う（ユーザーが指した地点のほうが正確なため）。
+- 2026-10-08 M2: iOS 26 で deprecated の MKPlacemark / placemark は使わない。座標は MKMapItem.location、住所は addressRepresentations.fullAddress(includingRegion: false, singleLine: true) → MKAddress.shortAddress → fullAddress の順。
+- 2026-10-08 M2: 確認なしで保存してよいかは PlaceResolution.decide(candidates:query:)（純粋関数）で決める。0 件は none、1 件は single。複数件は、検索語と座標があれば名前が一致し座標から 200m 以内で最も近い候補、座標がなければ先頭候補の名前が一致するときだけ先頭を single にし、それ以外（検索語なし・不一致）は choose。
+- 2026-10-08 M2: 名前の一致は、全角半角・大文字小文字を同一視し（ja_JP で folding）、空白・句読点・記号を除いた文字列どうしの完全一致とする。部分一致は使わない（「東京タワー」と「東京タワー 駐車場」を同じ場所にしないため）。
+- 2026-10-08 M2: App Group / entitlements（M1 では M3 以降としていた）を M2 に前倒しする。Share Extension とアプリで同じストアを使う必要が M2 で生じたため。Anosa と AnosaShare に group.com.example.anosa（プレースホルダー）の entitlements を project.yml から生成してコミットする。Team / Provisioning は設定せず、実 ID の設定は手動作業のまま。
+- 2026-10-08 M2: 保存後の確認チップ SavedConfirmationView と保存まわりの文言 SaveCopy は、Share Extension・App Intent と共有するため AnosaKit に置く。glassEffect を使うのはこのチップだけで、sheet 全体の上（コンテンツの上）に浮かせる。
+- 2026-10-08 M2: 手動追加は入力が 300ms 止まってから検索し、候補をタップしたら確認なしで保存、チップを 1 秒出して sheet を閉じる。手動追加の sourceURL は nil。保存に失敗したときだけアラートを出す。
+- 2026-10-08 M2: 一覧は @Query（statusRawValue で絞り込み、savedAt 降順）で表示し、ステータス変更・削除・保存は PlaceStore を通す。絞り込みの segmented Picker は safeAreaBar(edge: .top) に置き、独自背景は付けない。スワイプは他の 2 ステータスへの移動と削除で、削除は確認しない（凝った管理機能は作らない方針）。
+- 2026-10-08 M2: アプリの ModelContainer は AppContainer.shared（@MainActor の static）でプロセスの間保持し、一覧・手動追加・App Intent で共有する。永続ストアを開けなければインメモリで起動する（インメモリも作れない場合だけ停止する）。
+- 2026-10-08 M2: App Intent「Anosaに保存」は骨組みとして、場所名の検索結果の先頭を確認なしで保存する（Siri / ショートカットでは候補選択 UI を出さない）。String パラメータはフレーズに入れられないため、フレーズは「\(.applicationName)に保存」のみとし、場所名は実行時に聞く。App Shortcuts のフレーズのローカライズ（AppShortcuts.xcstrings）は未対応。
+- 2026-10-08 M2: Share Extension の入力は、添付のうち最初の Web URL（UTType.url、http(s) のみ）と、テキストは 添付の plainText → attributedContentText → attributedTitle の順で最初の空でない 1 つを使う（混ぜると検索語が長くなり名前で検索できなくなるため）。読み込めなかった添付は無視する。
+- 2026-10-08 M2: Share Extension は decide が single なら確認なしで保存し、確認チップを 1 秒出して completeRequest で閉じる。choose / none / 入力から何も取れない / 初回検索の失敗は候補選択 UI（検索欄の初期値はクエリのテキスト、再検索は入力が 300ms 止まってから、座標があればその周辺に寄せる）。キャンセルは cancelRequest（CocoaError.userCancelled）。検索中は ProgressView だけでキャンセルボタンも出さない。
+- 2026-10-08 M2: Share Extension の保存失敗はアラートで SaveCopy.saveFailed を出し、候補選択 UI（キャンセルで閉じられる）に残す。確認なし保存で失敗した場合はその候補 1 件を候補選択 UI に出す。sourceURL は PlaceQuery.sourceURL、なければ共有された Web URL。
+- 2026-10-08 M2: 検索に失敗したら、Share Extension・手動追加とも同じ検索語で再試行できるようにする。失敗表示（ContentUnavailableView）に標準ボタン「もう一度さがす」を置き、検索の確定（onSubmit(of: .search)）でも同じ語で検索し直す。失敗した検索語は検索済みとして記録しない。座標だけの共有で初回の逆ジオコーディングに失敗した場合は、検索欄が空のままの再試行で逆ジオコーディングをやり直す。
+- 2026-10-08 M2: アプリの起動中に Share Extension（別プロセス・別 ModelContainer）から保存した場所が、一覧の @Query にすぐ反映されるかは未確認。反映されない場合は scenePhase が active に戻ったときの再取得などを後続で対応する。
+- 2026-10-08 M2: App Intent「Anosaに保存」は PlaceResolution.decide を通さず先頭候補を保存している。保存基準を Share Extension（decide が single のときだけ確認なしで保存）に揃えるかは後続で見直す。
+- 2026-10-08 M2: Share Extension の画面は透明な常在ビュー（Color.clear）を土台にした ZStack にし、確認チップはその最前面に置く。確認なしの保存では phase が .resolving のまま中身が空になり、Group の overlay ではチップが描画されないため。独自の背景色は付けない。
+- 2026-10-08 M2: Share Extension の分岐を決める純粋関数 ShareFlow（firstStep / sourceURL / sharedText）は、kit-test でテストするため AnosaKit に置く。
+- 2026-10-08 M2: 一覧のスワイプは allowsFullSwipe: false にし、削除はボタンのタップでだけ実行する（フルスワイプで誤って消さないため。確認ダイアログは引き続き出さない）。
+- 2026-10-08 M2: 後続課題: PlaceSearch の MKLocalSearch は task(id:) のキャンセルが伝わらず、古い検索が最後まで走る（結果は checkCancellation で捨てている）。withTaskCancellationHandler で MKLocalSearch.cancel() を呼ぶかを後続で見直す。
+- 2026-10-08 M2: 後続課題: 永続ストアを開けずインメモリで起動したことはログにしか出ず、保存した場所が再起動で消えることを利用者が知る手段がない。アプリ内での知らせ方を後続で検討する。
