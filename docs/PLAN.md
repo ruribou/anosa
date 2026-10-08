@@ -62,6 +62,16 @@
 | `AddPlaceView` | `Anosa/AddPlaceView.swift` | `.searchable` → `PlaceSearch` の候補 → タップで保存 → 確認チップを 1 秒出して閉じる |
 | `SaveToAnosaIntent` / `AnosaShortcuts` | `Anosa/Intents/` | App Intent「Anosaに保存」（先頭候補を保存）とフレーズ「Anosaに保存」 |
 
+## Share Extension（M2）
+
+| 型 | ファイル | 役割 |
+| --- | --- | --- |
+| `ShareViewController` | `AnosaShare/ShareViewController.swift` | principal class（UIKit）。`ShareView` を `UIHostingController` で載せ、`completeRequest` / `cancelRequest` で閉じる |
+| `SharedItemLoader` | `AnosaShare/SharedItemLoader.swift` | `NSExtensionItem` から Web URL とテキストを取り出して `SharedInput` にする |
+| `ShareFlow` | `AnosaShare/ShareFlow.swift` | 解析結果と `PlaceResolution.decide` から最初の画面（即保存 / 候補選択）を決める純粋関数、sourceURL・テキストの優先順位 |
+| `ShareModel` | `AnosaShare/ShareModel.swift` | `@MainActor @Observable`。解析 → 検索 → 保存 → 確認チップ 1 秒 → 閉じる。PlaceStore（コンテナ）を保持 |
+| `ShareView` | `AnosaShare/ShareView.swift` | 検索中は ProgressView のみ。候補選択は NavigationStack + List + `.searchable` + キャンセル |
+
 ## 検証
 
 - 正本は `.claude/verify.conf`。手元も CI も `.claude/scripts/verify run` を実行する

@@ -35,3 +35,6 @@
 - 2026-10-08 M2: 一覧は @Query（statusRawValue で絞り込み、savedAt 降順）で表示し、ステータス変更・削除・保存は PlaceStore を通す。絞り込みの segmented Picker は safeAreaBar(edge: .top) に置き、独自背景は付けない。スワイプは他の 2 ステータスへの移動と削除で、削除は確認しない（凝った管理機能は作らない方針）。
 - 2026-10-08 M2: アプリの ModelContainer は AppContainer.shared（@MainActor の static）でプロセスの間保持し、一覧・手動追加・App Intent で共有する。永続ストアを開けなければインメモリで起動する（インメモリも作れない場合だけ停止する）。
 - 2026-10-08 M2: App Intent「Anosaに保存」は骨組みとして、場所名の検索結果の先頭を確認なしで保存する（Siri / ショートカットでは候補選択 UI を出さない）。String パラメータはフレーズに入れられないため、フレーズは「\(.applicationName)に保存」のみとし、場所名は実行時に聞く。App Shortcuts のフレーズのローカライズ（AppShortcuts.xcstrings）は未対応。
+- 2026-10-08 M2: Share Extension の入力は、添付のうち最初の Web URL（UTType.url、http(s) のみ）と、テキストは 添付の plainText → attributedContentText → attributedTitle の順で最初の空でない 1 つを使う（混ぜると検索語が長くなり名前で検索できなくなるため）。読み込めなかった添付は無視する。
+- 2026-10-08 M2: Share Extension は decide が single なら確認なしで保存し、確認チップを 1 秒出して completeRequest で閉じる。choose / none / 入力から何も取れない / 初回検索の失敗は候補選択 UI（検索欄の初期値はクエリのテキスト、再検索は入力が 300ms 止まってから、座標があればその周辺に寄せる）。キャンセルは cancelRequest（CocoaError.userCancelled）。検索中は ProgressView だけでキャンセルボタンも出さない。
+- 2026-10-08 M2: Share Extension の保存失敗はアラートで SaveCopy.saveFailed を出し、候補選択 UI（キャンセルで閉じられる）に残す。確認なし保存で失敗した場合はその候補 1 件を候補選択 UI に出す。sourceURL は PlaceQuery.sourceURL、なければ共有された Web URL。
