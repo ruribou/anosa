@@ -18,6 +18,10 @@ public struct AnosaSettings: Hashable, Codable, Sendable {
     public var maxAgeBonusDays: Double
     /// 徒歩速度（メートル/分）。
     public var walkingSpeedMetersPerMinute: Double
+    /// 同時に監視するリージョン数の上限（リージョン監視の上限 20 に合わせる）。
+    public var monitoredRegionLimit: Int
+    /// 監視するリージョンの半径（メートル）。
+    public var regionRadiusMeters: Double
 
     public init(
         notificationRadiusMeters: Double,
@@ -27,7 +31,9 @@ public struct AnosaSettings: Hashable, Codable, Sendable {
         quietHours: QuietHours,
         ageBonusMetersPerDay: Double,
         maxAgeBonusDays: Double,
-        walkingSpeedMetersPerMinute: Double
+        walkingSpeedMetersPerMinute: Double,
+        monitoredRegionLimit: Int = AnosaSettings.defaultMonitoredRegionLimit,
+        regionRadiusMeters: Double = AnosaSettings.defaultRegionRadiusMeters
     ) {
         self.notificationRadiusMeters = notificationRadiusMeters
         self.dailyNotificationLimit = dailyNotificationLimit
@@ -37,6 +43,41 @@ public struct AnosaSettings: Hashable, Codable, Sendable {
         self.ageBonusMetersPerDay = ageBonusMetersPerDay
         self.maxAgeBonusDays = maxAgeBonusDays
         self.walkingSpeedMetersPerMinute = walkingSpeedMetersPerMinute
+        self.monitoredRegionLimit = monitoredRegionLimit
+        self.regionRadiusMeters = regionRadiusMeters
+    }
+
+    public static let defaultMonitoredRegionLimit = 20
+    public static let defaultRegionRadiusMeters: Double = 500
+
+    private enum CodingKeys: String, CodingKey {
+        case notificationRadiusMeters
+        case dailyNotificationLimit
+        case cooldown
+        case laterSnoozeDuration
+        case quietHours
+        case ageBonusMetersPerDay
+        case maxAgeBonusDays
+        case walkingSpeedMetersPerMinute
+        case monitoredRegionLimit
+        case regionRadiusMeters
+    }
+
+    /// M3 で足した項目は、それより前に保存された JSON にないため既定値で補う。
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        notificationRadiusMeters = try container.decode(Double.self, forKey: .notificationRadiusMeters)
+        dailyNotificationLimit = try container.decode(Int.self, forKey: .dailyNotificationLimit)
+        cooldown = try container.decode(TimeInterval.self, forKey: .cooldown)
+        laterSnoozeDuration = try container.decode(TimeInterval.self, forKey: .laterSnoozeDuration)
+        quietHours = try container.decode(QuietHours.self, forKey: .quietHours)
+        ageBonusMetersPerDay = try container.decode(Double.self, forKey: .ageBonusMetersPerDay)
+        maxAgeBonusDays = try container.decode(Double.self, forKey: .maxAgeBonusDays)
+        walkingSpeedMetersPerMinute = try container.decode(Double.self, forKey: .walkingSpeedMetersPerMinute)
+        monitoredRegionLimit = try container.decodeIfPresent(Int.self, forKey: .monitoredRegionLimit)
+            ?? Self.defaultMonitoredRegionLimit
+        regionRadiusMeters = try container.decodeIfPresent(Double.self, forKey: .regionRadiusMeters)
+            ?? Self.defaultRegionRadiusMeters
     }
 
     public static let `default` = AnosaSettings(

@@ -46,3 +46,13 @@
 - 2026-10-08 M2: 一覧のスワイプは allowsFullSwipe: false にし、削除はボタンのタップでだけ実行する（フルスワイプで誤って消さないため。確認ダイアログは引き続き出さない）。
 - 2026-10-08 M2: 後続課題: PlaceSearch の MKLocalSearch は task(id:) のキャンセルが伝わらず、古い検索が最後まで走る（結果は checkCancellation で捨てている）。withTaskCancellationHandler で MKLocalSearch.cancel() を呼ぶかを後続で見直す。
 - 2026-10-08 M2: 後続課題: 永続ストアを開けずインメモリで起動したことはログにしか出ず、保存した場所が再起動で消えることを利用者が知る手段がない。アプリ内での知らせ方を後続で検討する。
+- 2026-10-08 M3: リージョン監視は status == wantToGo の場所だけを、現在地から近い順（同距離は id.uuidString 昇順）に AnosaSettings.monitoredRegionLimit（既定 20 = リージョン監視の上限）件まで登録する。スヌーズ中・クールダウン中の場所も監視は続ける（通知するかは判断エンジンが決めるため、監視の絞り込みはステータスだけにする）。
+- 2026-10-08 M3: リージョンの半径は AnosaSettings.regionRadiusMeters（既定 500m、notificationRadiusMeters の既定と同じ）。リージョンの識別子は "place.<UUID>"、RegionIdentifier.placeID(from:) で逆変換し、形式が違えば nil。
+- 2026-10-08 M3: RegionPlanner の差分: 監視中の識別子のうち今回選ばれなかったものは、Anosa の形式でないものも含めてすべて外す（toRemove は昇順）。既に監視中の識別子は追加しない。半径を変えても同じ識別子の監視は張り直さないため、半径の変更時はアプリ側で一度全部外してから計画する。
+- 2026-10-08 M3: AnosaSettings に足した monitoredRegionLimit・regionRadiusMeters は、既存の init 呼び出しを壊さないよう既定値つきの引数にし、デコードでは項目がなければ既定値で補う。
+- 2026-10-08 M3: 通知アクションの識別子は anosa.action.go / anosa.action.dismissToday / anosa.action.visited、カテゴリは anosa.category.nearbyPlace、userInfo の場所 id のキーは placeID（UUID 文字列）。同じ場所の通知の request identifier は anosa.notification.<UUID> で置き換わる。「行ってみる」だけマップを開くためアプリを前面に出す（opensApp）。
+- 2026-10-08 M3: 「行ってみる」は場所の状態を変えず、Apple マップの徒歩ルート URL（https://maps.apple.com/?daddr=<緯度>,<経度>&dirflg=w、座標は小数点以下 6 桁）を返すだけにする。実際に行ったかはわからないため、履歴化は「もう行った」に任せる。
+- 2026-10-08 M3: 「今日はやめる」は snoozedUntil = settings.snoozeEnd(for: .today)（既定 次の 8:00）を保存し、「もう行った」は status を visited にする。どちらも他の項目は変えず、該当 id がなければ何もしない（M2 の PlaceStore の方針と同じ）。
+- 2026-10-08 M3: 通知履歴は App Group の UserDefaults（取れなければ .standard）に [NotificationRecord] の JSON で保存する。追記時に now − (max(クールダウン, 1日) + 1日)（既定 8 日）より前の記録を刈る（ちょうどの記録は残す）。読めないデータは空として扱い、次の追記で上書きする。
+- 2026-10-08 M3: 通知の記録は LocationEvaluator に 1 か所にまとめる。evaluate は PlaceStore の「行きたい」と通知履歴を読み、UserInputOpeningHoursProvider と注入した Calendar で DecisionEngine を呼び、候補があれば lastNotifiedAt = now・notifiedCount + 1 を保存して履歴に追記してから候補を返す（通知を出す前に記録する。通知の登録に失敗しても同じ場所を続けて出さないほうを優先する）。記録時に場所がストアから消えていれば何もせず nil。
+- 2026-10-08 M3: 位置のスナップショット LocationSnapshot は現在地・取得時刻・近い「行きたい」場所（id・名前・座標・距離m・徒歩分、近い順・同距離は id 昇順、既定 5 件）。App Group の UserDefaults のキー locationSnapshot に JSON で保存し、ウィジェット（M4）・Watch は LocationSnapshotStore.load() で読む。スヌーズ中の場所も含める（ウィジェットは「近い行きたい場所」を出すため）。
