@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: verify
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: 最新の Xcode 26 を選択
+        run: |
+          XC=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -n 1 || true)
+          if [ -n "$XC" ]; then sudo xcode-select -s "$XC"; fi
+          xcodebuild -version
+
+      - name: XcodeGen
+        if: ${{ hashFiles('project.yml') != '' }}
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: 検証（.claude/verify.conf）
+        if: ${{ hashFiles('.claude/verify.conf') != '' }}
+        run: .claude/scripts/verify run
