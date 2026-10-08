@@ -1,0 +1,126 @@
+name: Anosa
+options:
+  bundleIdPrefix: com.example.anosa
+  deploymentTarget:
+    iOS: "26.0"
+    watchOS: "26.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+packages:
+  AnosaKit:
+    path: AnosaKit
+targets:
+  Anosa:
+    type: application
+    platform: iOS
+    sources:
+      - path: Anosa
+    info:
+      path: Anosa/Info.plist
+      properties:
+        CFBundleDisplayName: Anosa
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        NSLocationWhenInUseUsageDescription: 近くにある行きたい場所を見つけるために、現在地を使います。位置情報は端末の外に送りません。
+        NSLocationAlwaysAndWhenInUseUsageDescription: アプリを開いていないときも、行きたい場所の近くに来たらお知らせするために、現在地を使います。位置情報は端末の外に送りません。
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.anosa
+        TARGETED_DEVICE_FAMILY: "1"
+    dependencies:
+      - package: AnosaKit
+      - target: AnosaShare
+      - target: AnosaWidget
+      - target: AnosaWatch
+  AnosaShare:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: AnosaShare
+    info:
+      path: AnosaShare/Info.plist
+      properties:
+        CFBundleDisplayName: Anosa
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+              NSExtensionActivationSupportsText: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.anosa.share
+        TARGETED_DEVICE_FAMILY: "1"
+  AnosaWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: AnosaWidget
+    info:
+      path: AnosaWidget/Info.plist
+      properties:
+        CFBundleDisplayName: Anosa
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.anosa.widget
+        TARGETED_DEVICE_FAMILY: "1"
+  AnosaWatch:
+    type: application
+    platform: watchOS
+    sources:
+      - path: AnosaWatch
+    info:
+      path: AnosaWatch/Info.plist
+      properties:
+        CFBundleDisplayName: Anosa
+        WKApplication: true
+        WKCompanionAppBundleIdentifier: com.example.anosa
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.anosa.watchkitapp
+    dependencies:
+      - package: AnosaKit
+      - target: AnosaWatchWidget
+  AnosaWatchWidget:
+    type: app-extension
+    platform: watchOS
+    sources:
+      - path: AnosaWatchWidget
+    info:
+      path: AnosaWatchWidget/Info.plist
+      properties:
+        CFBundleDisplayName: Anosa
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.anosa.watchkitapp.widget
+schemes:
+  Anosa:
+    build:
+      targets:
+        Anosa: all
+  AnosaShare:
+    build:
+      targets:
+        AnosaShare: all
+  AnosaWidget:
+    build:
+      targets:
+        AnosaWidget: all
+  AnosaWatch:
+    build:
+      targets:
+        AnosaWatch: all
+  AnosaWatchWidget:
+    build:
+      targets:
+        AnosaWatchWidget: all
