@@ -26,12 +26,33 @@ jobs:
           if [ -n "$XC" ]; then sudo xcode-select -s "$XC"; fi
           xcodebuild -version
 
-      - name: XcodeGen
+      # 生成（xcodegen generate）は verify.conf の check で行い、手元と同じ verify run に揃える。
+      - name: XcodeGen をインストール
         if: ${{ hashFiles('project.yml') != '' }}
-        run: |
-          brew install xcodegen
-          xcodegen generate
+        run: brew install xcodegen
 
       - name: 検証（.claude/verify.conf）
         if: ${{ hashFiles('.claude/verify.conf') != '' }}
         run: .claude/scripts/verify run
+
+      - name: 検証ログを表示
+        if: failure()
+        run: |
+          RUNS="$(git rev-parse --git-path claude-verify)/runs"
+          [ -d "$RUNS" ] || exit 0
+          for f in "$RUNS"/*/*.log; do
+            [ -f "$f" ] || continue
+            echo "::group::$f"
+            tail -n 200 "$f"
+            echo "::endgroup::"
+          done
+          # .git 配下は upload-artifact の隠しファイル除外にかかるため、作業用ディレクトリへコピーする
+          cp -R "$RUNS" "$RUNNER_TEMP/verify-logs"
+
+      - name: 検証ログをアップロード
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-logs
+          path: ${{ runner.temp }}/verify-logs
+          if-no-files-found: ignore
