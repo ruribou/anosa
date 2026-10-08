@@ -14,7 +14,7 @@ struct NearbyPlaceEntry: TimelineEntry {
     static let sample = NearbyPlaceEntry(
         date: .now,
         content: WatchComplicationContent(
-            place: NearbyPlace(
+            nearest: NearbyPlace(
                 id: UUID(),
                 name: "ちいさな喫茶店",
                 coordinate: Coordinate(latitude: 0, longitude: 0),
@@ -24,7 +24,7 @@ struct NearbyPlaceEntry: TimelineEntry {
         )
     )
 
-    static let empty = NearbyPlaceEntry(date: .now, content: WatchComplicationContent(place: nil))
+    static let empty = NearbyPlaceEntry(date: .now, content: WatchComplicationContent(state: .noNearbyPlaces, relevance: 0))
 }
 
 /// App Group のスナップショットと台帳から作る。Watch アプリが受信時に reloadAllTimelines するため、自分では更新しない。
