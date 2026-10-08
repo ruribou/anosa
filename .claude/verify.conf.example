@@ -22,3 +22,18 @@
 # 例: ignore 済みの生成物やローカル設定もビルド入力として扱う
 # input generated/schema
 # input .env.local
+
+# ---------------------------------------------------------------- Anosa（M1 で .claude/verify.conf に書く想定）
+# スキーム名・パッケージパスは M1 で確定したものに合わせる。シミュレータ名を書く場合は
+# xcrun simctl list devices available で実在を確認する（CI の macos-26 と手元の両方）。
+# ビルドだけなら -sdk iphonesimulator / watchsimulator を使い、デバイス名に依存させない。
+# -derivedDataPath はworktreeごとに分ける（./.derivedData は .gitignore 済み）。
+#
+# check xcodegen    .         xcodegen generate
+# check kit-test    AnosaKit  swift test
+# check build-ios   .         xcodebuild -project Anosa.xcodeproj -scheme Anosa -sdk iphonesimulator -derivedDataPath ./.derivedData CODE_SIGNING_ALLOWED=NO build
+# check build-watch .         xcodebuild -project Anosa.xcodeproj -scheme AnosaWatch -sdk watchsimulator -derivedDataPath ./.derivedData CODE_SIGNING_ALLOWED=NO build
+#
+# 注意: argv は引用符を解釈しないため、-destination 'platform=iOS Simulator,name=...' のような
+# 空白を含む引数は直接書けない。テスト実行で destination が必要なら scripts/ci/ に検証スクリプトを置き、
+# そのパスを check に書く。ci.yml も同じ .claude/scripts/verify run を実行する。

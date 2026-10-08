@@ -2,7 +2,24 @@
   "permissions": {
     "allow": [
       "Bash(git:*)",
-      "Bash(gh:*)"
+      "Bash(gh:*)",
+      "Bash(.claude/scripts/verify:*)",
+      "Bash(.claude/scripts/review:*)",
+      "Bash(.claude/scripts/checkpoint:*)",
+      "Bash(xcodegen generate:*)",
+      "Bash(xcodegen --version)",
+      "Bash(xcodebuild:*)",
+      "Bash(xcrun simctl list:*)",
+      "Bash(xcrun simctl boot:*)",
+      "Bash(xcrun simctl shutdown:*)",
+      "Bash(xcrun simctl create:*)",
+      "Bash(xcrun --show-sdk-version:*)",
+      "Bash(swift build:*)",
+      "Bash(swift test:*)",
+      "Bash(swift package describe:*)",
+      "Bash(swift package resolve:*)",
+      "Bash(plutil -lint:*)",
+      "Bash(plutil -p:*)"
     ],
     "deny": [
       "Bash(git config --global:*)",
@@ -25,7 +42,22 @@
       "Bash(gh secret set:*)",
       "Bash(gh ssh-key:*)",
       "Bash(gh variable delete:*)",
-      "Bash(gh variable set:*)"
+      "Bash(gh variable set:*)",
+      "Bash(security:*)",
+      "Bash(xcrun altool:*)",
+      "Bash(xcrun notarytool:*)",
+      "Bash(xcodebuild -exportArchive:*)",
+      "Bash(xcodebuild -allowProvisioningUpdates:*)",
+      "Bash(xcrun devicectl:*)",
+      "Read(**/*.mobileprovision)",
+      "Read(**/*.p12)",
+      "Read(**/*.p8)"
+    ],
+    "ask": [
+      "Bash(xcrun simctl erase:*)",
+      "Bash(xcrun simctl delete:*)",
+      "Bash(xcode-select -s:*)",
+      "Bash(xcode-select --switch:*)"
     ]
   },
   "hooks": {
@@ -42,6 +74,11 @@
             "type": "command",
             "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/scripts/command-guard",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/scripts/public-guard",
+            "timeout": 15
           }
         ]
       }

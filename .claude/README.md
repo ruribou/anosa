@@ -4,6 +4,18 @@
 
 言語・フレームワーク・デプロイ先に依存しない形で、エージェント・スラッシュコマンド・レビュー観点・プロジェクト固有知識の参照 Skill を揃えている。任意のリポジトリのルートに `.claude/` ディレクトリとして配置するだけで使える。
 
+## Anosa 向けのカスタマイズ
+
+このリポジトリ（Anosa: iOS 26 / watchOS 26 の SwiftUI アプリ。仕様は `docs/SPEC.md`）向けに、汎用テンプレートへ次を足している。
+
+| 追加・変更 | 内容 |
+| --- | --- |
+| `settings.json` | `xcodegen generate` / `xcodebuild` / `xcrun simctl list` 等 / `swift build` / `swift test` / `.claude/scripts/{verify,review,checkpoint}` を許可。シミュレータの erase / delete と `xcode-select -s` は確認。署名・公開（`security`、`notarytool`、`altool`、`devicectl`、`-allowProvisioningUpdates`、`-exportArchive`）と署名ファイルの読み取りは拒否 |
+| `scripts/public-guard` | 公開リポジトリ向けの Hook。commit / push 前に Team ID・プロファイル・実機 UDID・秘密鍵・署名ファイル・`.gpx` を差分から探し、見つかれば確認に回す（[`scripts/public-guard.md`](scripts/public-guard.md)） |
+| `skills/project-knowledge/references/` | Xcode / XcodeGen / シミュレータのトラブルシュートと、Anosa 固有のレビュー観点（思想・Liquid Glass・プライバシー・文言・スコープ外） |
+| `agents/implementer.md` | 「Anosa 固有の前提」節（SPEC.md・DECISIONS.md・XcodeGen・derivedDataPath・署名しない・日本語文言） |
+| `verify.conf.example` | Anosa 用の check の例。`verify.conf` 本体は M1 で作る |
+
 ## セットアップ
 
 任意のプロジェクトのルートで、このリポジトリを `.claude/` として取り込む。
@@ -47,6 +59,8 @@ git clone git@github.com:ruribou/.claude.git .claude
 │   ├── git-guard.md       自律実行の判断基準・停止条件・判定表
 │   ├── command-guard      git / gh 以外の破壊的コマンド（rm -rf / 、dd、mkfs 等）を止める Hook
 │   ├── command-guard.md   判定表・限界
+│   ├── public-guard       公開リポジトリに載せない情報を commit / push 前に確認する Hook（Anosa 用）
+│   ├── public-guard.md    検出対象・限界
 │   ├── lib/tokenize.awk   git-guard / command-guard が共有するコマンドの字句解析
 │   ├── verify             検証の共通入口（明示した検証の実行と証跡記録）
 │   ├── verify.md          アダプター設定・結果・証跡の仕様
@@ -61,7 +75,7 @@ git clone git@github.com:ruribou/.claude.git .claude
     ├── project-knowledge/ プロジェクト固有知識を必要時に参照する Skill
     │   ├── SKILL.md       読み込み手順（共有テンプレートが管理）
     │   ├── templates/     索引・トラブルシュート・レビュー事例の書式
-    │   └── references/    知識本文（利用側リポジトリが作成・管理。テンプレートには含めない）
+    │   └── references/    知識本文（Anosa: Xcode のトラブルシュートとレビュー観点）
     └── verify/SKILL.md    /verify  検証を手動実行して結果を報告
 ```
 
