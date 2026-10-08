@@ -15,6 +15,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         notifier.configure()
         #if DEBUG
         DebugPlaceSeeder.seedFromLaunchArguments()
+        DebugOnboardingReset.resetFromLaunchArguments()
         #endif
         watchSync.activate()
         locationService.start()
