@@ -116,3 +116,5 @@
 - 2026-10-08 M6: 設定は読み込み時・保存時に正規化する。上限・距離が選択肢にない値なら最も近い選択肢に寄せ、同じ近さなら小さい方（通知を出しすぎない側）にする。距離が NaN・無限大なら既定の 500m に戻す。静音の時が 0..<24、分が 0..<60 の外なら、既定値（22:00 / 8:00）のその項目だけに戻す（範囲内の分はそのまま残す）。
 - 2026-10-08 M6: リージョン監視の半径（regionRadiusMeters）は通知距離に合わせ、applied(to:) で同じ値にする（通知距離より狭いリージョンでは入っても気づけず、広いと通知しない侵入が増えるため）。LocationService は半径が変わったリージョンを張り直す。
 - 2026-10-08 M6: 設定は UserPreferencesStore で App Group の UserDefaults のキー userPreferences に JSON で保存する（NotificationHistoryStore / LocationSnapshotStore と同じ作り）。保存がない・読めない（壊れた JSON・項目欠け）ときは既定値とする。
+- 2026-10-08 M6: アプリ側の LocationService・PlaceNotifier・WatchSyncService は AnosaSettings を init で固定せず、`@MainActor () -> AnosaSettings` のクロージャ（既定は `UserPreferencesStore.shared().settings()`）を受け取り、判断の直前（LocationEvaluator.settings に代入）・リージョンの入れ替え・スナップショット作成・通知アクション（スヌーズ終了時刻）・Watch の「もう行った」の反映のたびに読む（設定の変更を再起動なしで反映するため。プレビュー・テストではクロージャを差し替える）。
+- 2026-10-08 M6: App Intent・Share Extension・iOS ウィジェットは AnosaSettings を使っていない（ウィジェットはスナップショットの距離・徒歩分をそのまま出す）ため変更しない。Watch（AnosaWatch / AnosaWatchWidget）は iPhone と App Group を共有しない別端末で設定が届かないため、relevance の半径などは既定値（AnosaSettings.default）のままとする。

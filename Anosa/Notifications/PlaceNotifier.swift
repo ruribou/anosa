@@ -7,11 +7,12 @@ import UserNotifications
 @MainActor
 final class PlaceNotifier: NSObject {
     private let center = UNUserNotificationCenter.current()
-    private let settings: AnosaSettings
+    /// 使うたびに読む設定（設定画面での変更を再起動なしで反映するため）。
+    private let settings: @MainActor () -> AnosaSettings
 
     private static let logger = Logger(subsystem: "com.example.anosa", category: "notification")
 
-    init(settings: AnosaSettings = .default) {
+    init(settings: @escaping @MainActor () -> AnosaSettings = { UserPreferencesStore.shared().settings() }) {
         self.settings = settings
         super.init()
     }
@@ -86,7 +87,7 @@ final class PlaceNotifier: NSObject {
                 placeID: placeID,
                 now: Date(),
                 store: PlaceStore(container: AppContainer.shared),
-                settings: settings,
+                settings: settings(),
                 calendar: .autoupdatingCurrent
             )
         } catch {

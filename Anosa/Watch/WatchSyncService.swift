@@ -23,7 +23,8 @@ final class WatchSyncService: NSObject {
     private let session: WCSession?
     private let store: PlaceStore
     private let snapshotStore = LocationSnapshotStore.shared()
-    private let settings: AnosaSettings
+    /// 使うたびに読む設定（設定画面での変更を再起動なしで反映するため）。
+    private let settings: @MainActor () -> AnosaSettings
     /// activate が終わる前に送ろうとした最後の 1 件。activate 完了時に送る。
     private var pendingSnapshot: LocationSnapshot?
     private var lastComplicationKey: ComplicationKey?
@@ -31,7 +32,7 @@ final class WatchSyncService: NSObject {
 
     private nonisolated static let logger = Logger(subsystem: "com.example.anosa", category: "watch")
 
-    init(settings: AnosaSettings = .default) {
+    init(settings: @escaping @MainActor () -> AnosaSettings = { UserPreferencesStore.shared().settings() }) {
         session = WCSession.isSupported() ? WCSession.default : nil
         store = PlaceStore(container: AppContainer.shared)
         self.settings = settings
@@ -101,6 +102,7 @@ final class WatchSyncService: NSObject {
     /// Watch の「もう行った」を反映し、最後のスナップショットを同じ現在地のまま作り直して保存し、iOS のウィジェットの更新を頼んで Watch に送る。
     /// 該当する場所がなくても作り直して送る（Watch 側の台帳が反映済みとして消せるように）。
     private func applyVisited(_ message: WatchVisitedMessage) {
+        let settings = self.settings()
         do {
             try NotificationActionHandler.apply(
                 .visited,
