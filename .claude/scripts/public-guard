@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# public-guard — 公開リポジトリに載せてはいけない情報（署名情報・実機 UDID・秘密鍵・位置ログ）を
+# git commit / git push の直前に差分から探し、見つかったときだけ ask を返す Hook。
+# 仕様: scripts/public-guard.md（配置後は .claude/scripts/public-guard.md）
+#
+#   public-guard    PreToolUse。stdin の Hook 入力を判定する
+#
+# 権限を広げることはしない（allow は返さない）。bash 3.2 互換を保つ。
+
+set -o pipefail
+
+emit() { # <reason>
+  jq -n -c --arg r "public-guard: $1" \
+    '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: $r}}'
+}
+
+GIT_OP_RE='(^|[;&|(`[:space:]])git([[:space:]]+-C[[:space:]]+[^[:space:]]+)?[[:space:]]+(commit|push)([[:space:]]|$)'
+
+INPUT=$(cat)
+
+if ! command -v jq >/dev/null 2>&1; then
+  if printf '%s' "$INPUT" | grep -Eq 'git[^"]*(commit|push)'; then
+    printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"public-guard: jq が無いため公開前チェックができません"}}'
+  fi
+  exit 0
+fi
+
+CMD=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
+[ -n "$CMD" ] || exit 0
+OP=$(printf '%s' "$CMD" | grep -Eo "$GIT_OP_RE" | head -n 1 | grep -Eo '(commit|push)' | tail -n 1)
+[ -n "$OP" ] || exit 0
+
+CWD=$(printf '%s' "$INPUT" | jq -r '.cwd // empty' 2>/dev/null)
+[ -n "$CWD" ] && cd "$CWD" 2>/dev/null
+git rev-parse --git-dir >/dev/null 2>&1 || exit 0
+
+# 対象の差分（追加行とパス）を集める
+if [ "$OP" = commit ]; then
+  # -a / pathspec 付き commit も拾えるよう、staged と unstaged の両方を見る（過検出は許容）
+  DIFF=$( { git diff --cached --no-color -U0; git diff --no-color -U0; } 2>/dev/null)
+  FILES=$( { git diff --cached --name-only; git diff --name-only; } 2>/dev/null | sort -u)
+else
+  RANGE=""
+  if git rev-parse --verify -q '@{upstream}' >/dev/null 2>&1; then
+    RANGE='@{upstream}..HEAD'
+  elif git rev-parse --verify -q origin/main >/dev/null 2>&1; then
+    RANGE='origin/main..HEAD'
+  fi
+  [ -n "$RANGE" ] || exit 0
+  DIFF=$(git log -p --no-color -U0 --format= "$RANGE" 2>/dev/null)
+  FILES=$(git log --name-only --format= "$RANGE" 2>/dev/null | sort -u)
+fi
+
+ADDED=$(printf '%s\n' "$DIFF" | grep -E '^\+' | grep -Ev '^\+\+\+ ')
+FOUND=""
+found() { FOUND="${FOUND:+$FOUND / }$1"; }
+
+# 署名ファイル・鍵ファイル・位置ログ
+printf '%s\n' "$FILES" | grep -Eiq '\.(mobileprovision|provisionprofile|p12|p8|cer|pem|key|gpx)$|(^|/)AuthKey_[^/]*$' \
+  && found "署名・鍵・位置ログのファイル（$(printf '%s\n' "$FILES" | grep -Ei '\.(mobileprovision|provisionprofile|p12|p8|cer|pem|key|gpx)$|(^|/)AuthKey_' | head -n 3 | tr '\n' ' ')）"
+
+# Team ID の実値（空・変数参照・プレースホルダーは除く）
+printf '%s\n' "$ADDED" | grep -Eq 'DEVELOPMENT_TEAM["]?[[:space:]]*[:=][[:space:]]*["]?[A-Z0-9]{10}([^A-Za-z0-9]|$)' \
+  && found "DEVELOPMENT_TEAM の実値"
+printf '%s\n' "$ADDED" | grep -Eiq '(teamid|team_id|TeamIdentifier)["]?[[:space:]]*[:=>][[:space:]]*["<]?(string>)?[A-Z0-9]{10}([^A-Za-z0-9]|$)' \
+  && found "Team ID らしき値"
+
+# プロファイル・個人名入りの署名 ID
+printf '%s\n' "$ADDED" | grep -Eq 'PROVISIONING_PROFILE(_SPECIFIER)?["]?[[:space:]]*[:=][[:space:]]*["]?[^"[:space:]]' \
+  && found "PROVISIONING_PROFILE の実値"
+printf '%s\n' "$ADDED" | grep -Eq '(Apple Development|Apple Distribution|iPhone Developer|iPhone Distribution|Developer ID Application):[[:space:]]*[^"[:space:]]' \
+  && found "個人名入りの署名 ID"
+
+# 実機 UDID（00008xxx-xxxxxxxxxxxxxxxx 形式）
+printf '%s\n' "$ADDED" | grep -Eiq '(^|[^0-9A-Fa-f])[0-9A-F]{8}-[0-9A-F]{16}([^0-9A-Fa-f]|$)' \
+  && found "実機 UDID らしき値"
+
+# 秘密鍵
+printf '%s\n' "$ADDED" | grep -Eq -- '-----BEGIN ([A-Z]+ )?PRIVATE KEY-----' \
+  && found "秘密鍵"
+
+[ -n "$FOUND" ] || exit 0
+emit "git ${OP} の対象に公開リポジトリへ載せてはいけない可能性がある情報があります: ${FOUND}。プレースホルダーに置き換えるか、問題ないことを利用者が確認してから進めてください"
+exit 0
