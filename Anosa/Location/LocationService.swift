@@ -2,6 +2,7 @@ import AnosaKit
 import CoreLocation
 import Observation
 import OSLog
+import WidgetKit
 
 /// 位置情報の権限・significant-location-change・リージョン監視（CLMonitor）をまとめる。
 /// 位置が変わるたびに、スナップショットを保存し、監視するリージョンを入れ替え、判断エンジンで通知を決める。
@@ -131,7 +132,11 @@ final class LocationService: NSObject {
             try snapshotStore.save(snapshot)
         } catch {
             Self.logger.error("スナップショットを保存できません: \(error.localizedDescription, privacy: .public)")
+            return
         }
+        // ウィジェットの Timeline は .never なので、保存したスナップショットを出すにはここで更新を頼む。
+        WidgetCenter.shared.reloadAllTimelines()
+        Self.logger.info("ウィジェットの更新を依頼しました")
     }
 
     /// 通知の許可を確かめてから判断する。許可がなければ通知が出ないので、判断も記録もしない

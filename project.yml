@@ -74,6 +74,11 @@ targets:
     platform: iOS
     sources:
       - path: AnosaWidget
+    entitlements:
+      path: AnosaWidget/AnosaWidget.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.example.anosa
     info:
       path: AnosaWidget/Info.plist
       properties:
@@ -84,6 +89,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.example.anosa.widget
         TARGETED_DEVICE_FAMILY: "1"
+    dependencies:
+      - package: AnosaKit
   AnosaWatch:
     type: application
     platform: watchOS
