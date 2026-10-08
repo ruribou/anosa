@@ -51,7 +51,7 @@ jobs:
 
       - name: 検証ログをアップロード
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: verify-logs
           path: ${{ runner.temp }}/verify-logs
