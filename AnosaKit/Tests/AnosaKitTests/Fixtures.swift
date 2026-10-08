@@ -92,3 +92,17 @@ struct SeededGenerator: RandomNumberGenerator {
         return z ^ (z >> 31)
     }
 }
+
+/// テストごとに使い捨てる UserDefaults の suite。解放時に中身を消す。
+final class TemporaryDefaults {
+    let suiteName = "AnosaKitTests.\(UUID().uuidString)"
+    let defaults: UserDefaults
+
+    init() {
+        defaults = UserDefaults(suiteName: suiteName)!
+    }
+
+    deinit {
+        defaults.removePersistentDomain(forName: suiteName)
+    }
+}

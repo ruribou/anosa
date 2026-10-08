@@ -14,7 +14,7 @@
 | `NotificationRecord` | `Place.swift` | 通知履歴 1 件（`placeID`, `notifiedAt`） |
 | `TimeOfDay` | `TimeOfDay.swift` | 日付なしの時・分。`Comparable`。`init(of:calendar:)` で Date から作る |
 | `QuietHours` | `QuietHours.swift` | 静音時間帯。開始を含み終了を含まない。開始>終了は日跨ぎ、開始==終了は静音なし |
-| `AnosaSettings` | `AnosaSettings.swift` | 判断エンジン・通知のパラメータを 1 か所に集約（距離 500m、1日2回、クールダウン7日、あとで3時間、静音 22:00〜8:00、古さボーナス 5m/日・最大30日、徒歩 80m/分）。`walkingMinutes(forDistance:)`、`snoozeEnd(for:now:calendar:)` |
+| `AnosaSettings` | `AnosaSettings.swift` | 判断エンジン・通知のパラメータを 1 か所に集約（距離 500m、1日2回、クールダウン7日、あとで3時間、静音 22:00〜8:00、古さボーナス 5m/日・最大30日、徒歩 80m/分、リージョン監視 20 件・半径 500m）。`walkingMinutes(forDistance:)`、`snoozeEnd(for:now:calendar:)` |
 | `SnoozeKind` | `AnosaSettings.swift` | `today`（今日はやめる）/ `later`（あとで） |
 | `OpeningHours` / `OpeningPeriod` | `OpeningHours.swift` | ユーザー任意入力の営業時間。曜日 1=日〜7=土、閉店<開店は翌日跨ぎ、開店==閉店は終日 |
 | `OpeningHoursProvider` | `OpeningHours.swift` | 営業時間判定のプロトコル `isOpen(_:at:)` |
@@ -34,6 +34,15 @@
 | `ShareFlow` | `ShareFlow.swift` | Share Extension の分岐を決める純粋関数。`firstStep(query:candidates:)` が解析結果と `PlaceResolution.decide` から最初の画面（即保存 / 候補選択）を決める。`sourceURL(query:sharedURL:)`・`sharedText(attachmentText:contentText:title:)` で sourceURL・テキストの優先順位を決める |
 | `SaveCopy` | `SaveCopy.swift` | 保存まわりの文言（保存したよ。あとは忘れていいよ / 見つからない / 保存失敗） |
 | `SavedConfirmationView` | `UI/SavedConfirmationView.swift` | 保存後の確認チップ（glassEffect を使う唯一の箇所）。アプリ・Share Extension で共用 |
+| `RegionIdentifier` | `Location/RegionPlanner.swift` | リージョンの識別子 `place.<UUID>` の生成（`make(for:)`）と逆変換（`placeID(from:)`） |
+| `RegionPlanner` / `RegionPlan` / `PlannedRegion` | `Location/RegionPlanner.swift` | `plan(currentLocation:places:monitoredIdentifiers:limit:radiusMeters:)`（`settings:` 版あり）。「行きたい」を近い順に上限件数まで選び、追加（`toAdd`）・削除（`toRemove`）の差分を返す純粋関数 |
+| `LocationSnapshot` / `NearbyPlace` | `Location/LocationSnapshot.swift` | 現在地・取得時刻・近い「行きたい」場所（既定 5 件、距離・徒歩分つき）。`make(location:capturedAt:places:settings:limit:)` |
+| `LocationSnapshotStore` | `Location/LocationSnapshot.swift` | スナップショットを App Group の UserDefaults（キー `locationSnapshot`）に JSON で `save` / `load`。ウィジェット・Watch が読む |
+| `LocationEvaluator` | `Location/LocationEvaluator.swift` | `@MainActor`。`evaluate(currentLocation:now:)` が PlaceStore と通知履歴から DecisionEngine を呼び、候補があれば `record` で lastNotifiedAt・notifiedCount・履歴を更新して返す |
+| `NotificationAction` / `PlaceNotification` | `Notifications/NotificationAction.swift` | 通知アクション（行ってみる / 今日はやめる / もう行った）の識別子と文言、カテゴリ識別子、userInfo の `placeID`、request identifier |
+| `NotificationActionHandler` | `Notifications/NotificationActionHandler.swift` | `@MainActor`。`apply(_:placeID:now:store:settings:calendar:)` で今日はやめる→snoozedUntil、もう行った→visited、行ってみる→状態不変で URL。`mapsWalkingURL(for:)` |
+| `NotificationHistoryStore` | `Notifications/NotificationHistoryStore.swift` | 通知履歴を App Group の UserDefaults（キー `notificationHistory`）に JSON で保存。`records()`・`append(_:now:settings:)`（保持期間より古い記録を刈る） |
+| `SharedDefaults` | `Persistence/SharedDefaults.swift` | App Group の UserDefaults（取れなければ `.standard`） |
 
 判断エンジンの評価順: 静音時間 → 1日上限 → 場所ごとに（ステータスが行きたい → スヌーズ → クールダウン → 距離 → 営業時間）→ 優先度スコア最小の 1 件。時刻の解釈はすべて引数の `Calendar` で行う。
 
@@ -63,6 +72,16 @@
 | `AddPlaceView` | `Anosa/AddPlaceView.swift` | `.searchable` → `PlaceSearch` の候補 → タップで保存 → 確認チップを 1 秒出して閉じる |
 | `PlaceStatus`（extension） | `Anosa/PlaceStatus+Display.swift` | 一覧の絞り込み名・スワイプのボタン名・SF Symbols 名 |
 | `SaveToAnosaIntent` / `AnosaShortcuts` | `Anosa/Intents/` | App Intent「Anosaに保存」（先頭候補を保存）とフレーズ「Anosaに保存」 |
+
+## iOS アプリ本体（M3: 位置情報・通知）
+
+| 型 | ファイル | 役割 |
+| --- | --- | --- |
+| `AppDelegate` | `Anosa/AppDelegate.swift` | `UIApplicationDelegateAdaptor`。didFinishLaunching で通知の delegate・カテゴリを設定し、（DEBUG のみ）起動引数の場所を追加してから `LocationService.start()`。バックグラウンド再起動でも同じ経路 |
+| `LocationService` | `Anosa/Location/LocationService.swift` | `@MainActor @Observable`。権限の状態、significant-location-change、CLMonitor のリージョン入れ替え（`RegionPlanner`）、位置更新・侵入ごとのスナップショット保存と `LocationEvaluator.evaluate` → `PlaceNotifier.post` |
+| `LocationGuidance` / `LocationPermissionView` | `Anosa/Location/LocationPermissionView.swift` | 権限の 2 段階の案内（使用中のみ → 常に許可 → 断られたら設定アプリへのリンク）。一覧のツールバーから出る sheet |
+| `PlaceNotifier` | `Anosa/Notifications/PlaceNotifier.swift` | 通知の許可・カテゴリ（3 アクション）・即時通知。`UNUserNotificationCenterDelegate` で前面でもバナー表示、アクションを `NotificationActionHandler` に渡して保存・マップを開く |
+| `DebugPlaceSeeder` | `Anosa/Debug/DebugPlaceSeeder.swift` | DEBUG のみ。`-AnosaDebugAddPlace "<名前>,<緯度>,<経度>"` で場所を 1 件追加（重複は追加しない） |
 
 ## Share Extension（M2）
 
