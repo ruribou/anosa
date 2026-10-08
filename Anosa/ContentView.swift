@@ -5,6 +5,7 @@ struct ContentView: View {
     @State private var status: PlaceStatus = .wantToGo
     @State private var isAdding = false
     @State private var isShowingLocationPermission = false
+    @State private var isShowingSettings = false
     @Environment(LocationService.self) private var locationService
 
     var body: some View {
@@ -22,6 +23,11 @@ struct ContentView: View {
                     .padding(.bottom, 8)
                 }
                 .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("設定", systemImage: "gearshape") {
+                            isShowingSettings = true
+                        }
+                    }
                     if locationService.guidance != .none {
                         ToolbarItem(placement: .topBarLeading) {
                             Button("位置情報", systemImage: "location") {
@@ -40,6 +46,9 @@ struct ContentView: View {
                 }
                 .sheet(isPresented: $isShowingLocationPermission) {
                     LocationPermissionView()
+                }
+                .sheet(isPresented: $isShowingSettings) {
+                    SettingsView()
                 }
                 .onChange(of: locationService.guidance) { _, guidance in
                     // 「使用中のみ」を許可した直後にだけ、常に許可の説明を出す。決まったら閉じる。
