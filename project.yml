@@ -96,6 +96,11 @@ targets:
     platform: watchOS
     sources:
       - path: AnosaWatch
+    entitlements:
+      path: AnosaWatch/AnosaWatch.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.example.anosa
     info:
       path: AnosaWatch/Info.plist
       properties:
@@ -113,6 +118,11 @@ targets:
     platform: watchOS
     sources:
       - path: AnosaWatchWidget
+    entitlements:
+      path: AnosaWatchWidget/AnosaWatchWidget.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.example.anosa
     info:
       path: AnosaWatchWidget/Info.plist
       properties:
@@ -122,6 +132,8 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.example.anosa.watchkitapp.widget
+    dependencies:
+      - package: AnosaKit
 schemes:
   Anosa:
     build:

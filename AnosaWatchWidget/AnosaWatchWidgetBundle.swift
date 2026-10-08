@@ -4,6 +4,6 @@ import WidgetKit
 @main
 struct AnosaWatchWidgetBundle: WidgetBundle {
     var body: some Widget {
-        AnosaWatchPlaceholderWidget()
+        NearbyPlaceWidget()
     }
 }

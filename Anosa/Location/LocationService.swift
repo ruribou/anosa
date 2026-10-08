@@ -19,6 +19,7 @@ final class LocationService: NSObject {
 
     @ObservationIgnored private let manager = CLLocationManager()
     @ObservationIgnored private let notifier: PlaceNotifier
+    @ObservationIgnored private let watchSync: WatchSyncService
     @ObservationIgnored private let store: PlaceStore
     @ObservationIgnored private let evaluator: LocationEvaluator
     @ObservationIgnored private let snapshotStore = LocationSnapshotStore.shared()
@@ -38,8 +39,9 @@ final class LocationService: NSObject {
     /// リージョン侵入時に、この時間より新しい現在地があればそれで判断する。
     private static let freshLocationInterval: TimeInterval = 2 * 60
 
-    init(notifier: PlaceNotifier, settings: AnosaSettings = .default) {
+    init(notifier: PlaceNotifier, watchSync: WatchSyncService, settings: AnosaSettings = .default) {
         self.notifier = notifier
+        self.watchSync = watchSync
         self.settings = settings
         let store = PlaceStore(container: AppContainer.shared)
         self.store = store
@@ -137,6 +139,7 @@ final class LocationService: NSObject {
         // ウィジェットの Timeline は .never なので、保存したスナップショットを出すにはここで更新を頼む。
         WidgetCenter.shared.reloadAllTimelines()
         Self.logger.info("ウィジェットの更新を依頼しました")
+        watchSync.send(snapshot)
     }
 
     /// 通知の許可を確かめてから判断する。許可がなければ通知が出ないので、判断も記録もしない

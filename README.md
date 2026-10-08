@@ -53,3 +53,26 @@ xcrun simctl spawn <device> log stream --predicate 'subsystem == "com.example.an
 やり直すときは `xcrun simctl uninstall <device> com.example.anosa` してからインストールし直す（全部消すなら `xcrun simctl shutdown <device>` → `xcrun simctl erase <device>`）。
 
 実機でのバックグラウンド位置情報（アプリを閉じた状態での通知）の確認は手動で行う。
+
+## シミュレータでの動作確認（Watch 同期）
+以下の手順は、watchOS シミュレータのランタイムがない環境で書いたため確かめていない（ビルドが通ることだけ確認済み）。`<phone>` / `<watch>` はシミュレータの UDID か名前。
+
+1. watchOS のランタイムを入れ（Xcode の Settings > Components）、iOS と watchOS のシミュレータをペアにして起動する。
+   ```sh
+   xcrun simctl list pairs
+   xcrun simctl pair <watch> <phone>   # ペアがなければ作る
+   xcrun simctl boot <phone>
+   xcrun simctl boot <watch>
+   ```
+2. iPhone 側は「位置情報と通知」の手順 1〜3 でインストール・場所の追加・位置の移動をする。Watch アプリは別にビルドして Watch のシミュレータに入れる。
+   ```sh
+   xcodebuild -project Anosa.xcodeproj -scheme AnosaWatch \
+     -destination 'platform=watchOS Simulator,id=<watch>' \
+     -derivedDataPath ./.derivedData build
+   xcrun simctl install <watch> .derivedData/Build/Products/Debug-watchsimulator/AnosaWatch.app
+   xcrun simctl launch <watch> com.example.anosa.watchkitapp
+   ```
+3. iPhone で位置が更新されると、Watch アプリの一覧に近い順 3 件が出る。「もう行った」を押すとすぐ一覧から消え、iPhone の一覧では「行った」に移る。コンプリケーションは文字盤の編集で「近くの行きたい場所」を追加して確かめる。
+
+ログは `xcrun simctl spawn <phone|watch> log stream --predicate 'subsystem == "com.example.anosa" AND category == "watch"' --level info` で見る。
+署名なしのシミュレータビルドでは App Group が使えず、Watch アプリとコンプリケーションでデータが共有されないことがある（コンプリケーションが「近くにはまだないよ」のままになる）。Watch 実機での確認は手動で行う。
