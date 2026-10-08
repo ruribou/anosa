@@ -73,6 +73,16 @@
 | `PlaceStatus`（extension） | `Anosa/PlaceStatus+Display.swift` | 一覧の絞り込み名・スワイプのボタン名・SF Symbols 名 |
 | `SaveToAnosaIntent` / `AnosaShortcuts` | `Anosa/Intents/` | App Intent「Anosaに保存」（先頭候補を保存）とフレーズ「Anosaに保存」 |
 
+## iOS アプリ本体（M3: 位置情報・通知）
+
+| 型 | ファイル | 役割 |
+| --- | --- | --- |
+| `AppDelegate` | `Anosa/AppDelegate.swift` | `UIApplicationDelegateAdaptor`。didFinishLaunching で通知の delegate・カテゴリを設定し、（DEBUG のみ）起動引数の場所を追加してから `LocationService.start()`。バックグラウンド再起動でも同じ経路 |
+| `LocationService` | `Anosa/Location/LocationService.swift` | `@MainActor @Observable`。権限の状態、significant-location-change、CLMonitor のリージョン入れ替え（`RegionPlanner`）、位置更新・侵入ごとのスナップショット保存と `LocationEvaluator.evaluate` → `PlaceNotifier.post` |
+| `LocationGuidance` / `LocationPermissionView` | `Anosa/Location/LocationPermissionView.swift` | 権限の 2 段階の案内（使用中のみ → 常に許可 → 断られたら設定アプリへのリンク）。一覧のツールバーから出る sheet |
+| `PlaceNotifier` | `Anosa/Notifications/PlaceNotifier.swift` | 通知の許可・カテゴリ（3 アクション）・即時通知。`UNUserNotificationCenterDelegate` で前面でもバナー表示、アクションを `NotificationActionHandler` に渡して保存・マップを開く |
+| `DebugPlaceSeeder` | `Anosa/Debug/DebugPlaceSeeder.swift` | DEBUG のみ。`-AnosaDebugAddPlace "<名前>,<緯度>,<経度>"` で場所を 1 件追加（重複は追加しない） |
+
 ## Share Extension（M2）
 
 | 型 | ファイル | 役割 |
