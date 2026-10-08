@@ -99,7 +99,7 @@ xcrun simctl spawn <device> log stream --predicate 'subsystem == "com.example.an
 3. iPhone で位置が更新されると、Watch アプリの一覧に近い順 3 件が出る。「もう行った」を押すとすぐ一覧から消え、iPhone の一覧では「行った」に移る。コンプリケーションは文字盤の編集で「近くの行きたい場所」を追加して確かめる。
 
 ログは `xcrun simctl spawn <phone|watch> log stream --predicate 'subsystem == "com.example.anosa" AND category == "watch"' --level info` で見る。
-署名なしのシミュレータビルドでは App Group が使えず、Watch アプリとコンプリケーションでデータが共有されないことがある（コンプリケーションが「近くにはまだないよ」のままになる）。
+署名なしのシミュレータビルドでは App Group が使えず、Watch アプリとコンプリケーションでデータが共有されないことがある（コンプリケーションが「現在地がわかったら教えるね」〔inline は「現在地を待ってるよ」〕のままになる）。
 
 ## 手動でやること
 リポジトリでは設定・確認しない（できない）ため、人が行う作業。ID は公開リポジトリにコミットしない。
