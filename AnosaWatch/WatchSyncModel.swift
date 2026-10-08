@@ -8,7 +8,7 @@ import WidgetKit
 
 /// Watch 側の WatchConnectivity と表示の状態。
 /// iPhone から届いたスナップショットを App Group に保存して台帳を照合し、コンプリケーションを更新する。
-/// 「もう行った」は台帳に記録して transferUserInfo で iPhone に送る。
+/// 「もう行った」は台帳に記録して transferUserInfo で iPhone に送り、送ったら台帳に送信済みの印を付ける。
 @MainActor
 @Observable
 final class WatchSyncModel: NSObject {
@@ -20,8 +20,6 @@ final class WatchSyncModel: NSObject {
     @ObservationIgnored private let ledgerStore = WatchVisitedLedgerStore.shared()
     /// 最後に取り込んだ辞書の generatedAt。applicationContext とコンプリケーション用 userInfo の到着順は保証されないため、古いものを捨てる。
     @ObservationIgnored private let lastGeneratedAtKey = "watchSyncLastGeneratedAt"
-    /// activate 前に押された「もう行った」。activate 完了時に送る。
-    @ObservationIgnored private var pendingVisits: [WatchVisitedMessage] = []
     /// hasContentPending が false になるまで完了を待つバックグラウンドタスク。
     @ObservationIgnored private var pendingRefreshTasks: [WKWatchConnectivityRefreshBackgroundTask] = []
     @ObservationIgnored private var contentPendingObservation: NSKeyValueObservation?
@@ -42,9 +40,13 @@ final class WatchSyncModel: NSObject {
         return ledger.visiblePlaces(in: snapshot, limit: 3)
     }
 
-    /// 起動時・バックグラウンドタスクを受けたときに呼ぶ。activate 済みなら何もしない。
+    /// 起動時・バックグラウンドタスクを受けたときに呼ぶ。activate 済みなら未送信の「もう行った」を送るだけ。
     func activate() {
-        guard let session, !isActivating, session.activationState != .activated else { return }
+        guard let session, !isActivating else { return }
+        guard session.activationState != .activated else {
+            sendUnsentVisits()
+            return
+        }
         isActivating = true
         session.delegate = self
         contentPendingObservation = session.observe(\.hasContentPending) { @Sendable _, _ in
@@ -65,7 +67,7 @@ final class WatchSyncModel: NSObject {
             Self.logger.error("台帳を保存できません: \(error.localizedDescription, privacy: .public)")
         }
         WidgetCenter.shared.reloadAllTimelines()
-        send(WatchVisitedMessage(placeID: place.id, visitedAt: now))
+        sendUnsentVisits()
     }
 
     /// WatchConnectivity のバックグラウンドタスク。届いている内容を受け取り終えてから完了する。
@@ -75,18 +77,30 @@ final class WatchSyncModel: NSObject {
         completeRefreshTasksIfIdle()
     }
 
-    private func send(_ message: WatchVisitedMessage) {
+    /// 台帳の未送信の記録を transferUserInfo で送り、送信済みの印を付けて保存する。
+    /// activate 前なら activate し、完了時にここへ戻る。キューに積んだ時点で送信済みとみなす（配送は OS が保証する）。
+    private func sendUnsentVisits() {
         guard let session else { return }
+        let messages = ledger.unsentMessages
+        guard !messages.isEmpty else { return }
         guard session.activationState == .activated else {
-            pendingVisits.append(message)
             activate()
             return
         }
-        session.transferUserInfo(message.userInfo())
-        Self.logger.info("iPhone に「もう行った」を送りました")
+        for message in messages {
+            session.transferUserInfo(message.userInfo())
+            ledger.markSent(message)
+        }
+        do {
+            try ledgerStore.save(ledger)
+        } catch {
+            Self.logger.error("台帳を保存できません: \(error.localizedDescription, privacy: .public)")
+        }
+        Self.logger.info("iPhone に「もう行った」を送りました: \(messages.count) 件")
     }
 
     private func apply(_ context: WatchSyncContext) {
+        defer { completeRefreshTasksIfIdle() }
         let defaults = UserDefaults.standard
         if let last = defaults.object(forKey: lastGeneratedAtKey) as? Date, context.generatedAt <= last {
             return
@@ -118,9 +132,7 @@ final class WatchSyncModel: NSObject {
             if let context {
                 apply(context)
             }
-            let visits = pendingVisits
-            pendingVisits = []
-            visits.forEach(send)
+            sendUnsentVisits()
         }
         completeRefreshTasksIfIdle()
     }
