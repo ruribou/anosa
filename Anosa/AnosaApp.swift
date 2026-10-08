@@ -1,3 +1,4 @@
+import AnosaKit
 import SwiftUI
 
 @main
@@ -9,6 +10,7 @@ struct AnosaApp: App {
         WindowGroup {
             ContentView()
                 .environment(appDelegate.locationService)
+                .tint(AnosaTheme.accent)
         }
         .modelContainer(AppContainer.shared)
         .onChange(of: scenePhase) { _, phase in

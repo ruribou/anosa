@@ -33,7 +33,7 @@ struct AddPlaceView: View {
                 Button {
                     save(candidate)
                 } label: {
-                    CandidateRow(candidate: candidate)
+                    PlaceCandidateRow(candidate: candidate)
                 }
                 .foregroundStyle(.primary)
             }
@@ -147,19 +147,4 @@ struct AddPlaceView: View {
 private struct SearchRequest: Equatable {
     let text: String
     let attempt: Int
-}
-
-private struct CandidateRow: View {
-    let candidate: PlaceCandidate
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(candidate.name)
-            if let address = candidate.address {
-                Text(address)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-        }
-    }
 }

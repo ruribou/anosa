@@ -112,4 +112,14 @@ xcrun simctl spawn <device> log stream --predicate 'subsystem == "com.example.an
   - AnosaKit/Sources/AnosaKit/Persistence/AnosaStore.swift の `AnosaStore.appGroupIdentifier`（SwiftData のストアと共有 UserDefaults が使う）
 - **実機でのバックグラウンド位置情報テスト**: アプリを閉じた状態で近くに行ったときの通知、リージョン監視（CLMonitor）による侵入の検知、significant-location-change での再起動は、シミュレータでは確かめられない。実機で「常に許可」にして、実際に移動して確かめる。
 - **Apple Watch 実機確認**: iPhone → Watch の同期（近い順の一覧）、Watch からの「もう行った」の反映、コンプリケーション（inline / circular / rectangular / corner）と Smart Stack、iPhone の通知の Watch へのミラーとアクション。Watch のシミュレータ手順も未確認のため、実機で確かめる。
-- **アイコンの最終デザイン**: いまはアイコン資産（Icon Composer の .icon や Assets.xcassets の AppIcon）がリポジトリにない（ホーム画面は既定のアイコンになる）。Icon Composer で背景＋前景 1 枚のレイヤー構成で作り、各アプリのターゲットに追加して project.yml から参照させる。
+- **アイコンの最終デザイン**: いまはプレースホルダーのアイコン `Shared/AppIcon.icon`（Icon Composer の形式。背景はコーラル寄りのオレンジの塗り、前景は白い吹き出し兼ピンの SVG 1 枚）が入っていて、iOS アプリ（Anosa）と Watch アプリ（AnosaWatch）の両方がこれを使う。差し替えの手順:
+  1. `Shared/AppIcon.icon` を Icon Composer（Xcode に同梱。Xcode のメニュー Open Developer Tool から開ける）で開く。
+  2. 前景のレイヤー `Foreground`（`Shared/AppIcon.icon/Assets/Foreground.svg`）を新しいデザインの SVG に置き換え、背景の塗り（Fill）の色を変える。レイヤー構成は背景＋前景 1 枚のままにする（SPEC）。Watch の丸い形（circles）でも切れないよう、前景は中央に寄せる。
+  3. 保存すると `Shared/AppIcon.icon/icon.json` と `Assets/` が更新される。ファイル名 `AppIcon.icon` のままなら project.yml の変更は不要。名前や場所を変えるときは、project.yml の Anosa と AnosaWatch の `sources` にある `Shared/AppIcon.icon` と、両ターゲットの `settings.base.ASSETCATALOG_COMPILER_APPICON_NAME`（`.icon` のファイル名から拡張子を除いたもの）を合わせて変え、`xcodegen generate` する。
+  4. 各表示での見え方を書き出して確かめる（`--rendition` は Default / Dark / TintedLight / TintedDark / ClearLight / ClearDark、Watch は `--platform watchOS`）:
+     ```sh
+     "/Applications/Xcode.app/Contents/Applications/Icon Composer.app/Contents/Executables/ictool" \
+       Shared/AppIcon.icon --export-image --output-file /tmp/AppIcon-Default.png \
+       --platform iOS --rendition Default --width 1024 --height 1024 --scale 1
+     ```
+  5. シミュレータでホーム画面に表示されることを確かめる（書き出した PNG はリポジトリに入れない）。

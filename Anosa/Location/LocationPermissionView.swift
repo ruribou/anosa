@@ -37,21 +37,35 @@ struct LocationPermissionView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: symbolName)
-                .font(.largeTitle)
-                .foregroundStyle(.tint)
-            Text(title)
-                .font(.title3.bold())
-            Text(message)
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-            Spacer(minLength: 0)
-            actions
+        // 大きい文字では説明がシートに収まらないため、説明だけスクロールさせ、ボタンは下に固定する。
+        // safeAreaBar にしてスクロール端の効果をシステムに任せる（独自の背景は付けない）。
+        ScrollView {
+            VStack(spacing: 12) {
+                Image(systemName: symbolName)
+                    .font(.largeTitle)
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.tint)
+                    .padding(.bottom, 4)
+                    .accessibilityHidden(true)
+                Text(title)
+                    .font(.title3.bold())
+                    .multilineTextAlignment(.center)
+                Text(message)
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 24)
+            .padding(.top, 32)
         }
-        .padding(24)
-        .presentationDetents([.medium])
+        .scrollBounceBehavior(.basedOnSize)
+        .safeAreaBar(edge: .bottom) {
+            actions
+                .padding(.horizontal, 24)
+                .padding(.bottom, 8)
+        }
+        .presentationDetents([.medium, .large])
     }
 
     private var guidance: LocationGuidance { locationService.guidance }

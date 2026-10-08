@@ -66,12 +66,33 @@ public enum DistanceText {
     /// 10m 単位に四捨五入して 1000m 未満なら「350m」、それ以外は 0.1km 単位に四捨五入して「1.2km」。
     /// 負の値・NaN は 0m、`maximumMeters` を超える値（無限大を含む）は `maximumMeters` として扱う（Int への変換で落ちないため）。
     public static func format(meters: Double) -> String {
+        switch rounded(meters: meters) {
+        case .meters(let value): "\(value)m"
+        case .kilometerTenths(let tenths): "\(tenths / 10).\(tenths % 10)km"
+        }
+    }
+
+    /// `format` と同じ丸めで、単位を読み上げ向けにしたもの（VoiceOver 用）。例: 「650メートル」「1.2キロメートル」
+    public static func spoken(meters: Double) -> String {
+        switch rounded(meters: meters) {
+        case .meters(let value): "\(value)メートル"
+        case .kilometerTenths(let tenths): "\(tenths / 10).\(tenths % 10)キロメートル"
+        }
+    }
+
+    private enum Rounded {
+        /// 10m 単位に丸めたメートル（1000 未満）。
+        case meters(Int)
+        /// 0.1km 単位に丸めた値の 10 倍。
+        case kilometerTenths(Int)
+    }
+
+    private static func rounded(meters: Double) -> Rounded {
         let meters = meters.isNaN ? 0 : min(max(0, meters), maximumMeters)
         let tens = (meters / 10).rounded()
         if tens < 100 {
-            return "\(Int(tens) * 10)m"
+            return .meters(Int(tens) * 10)
         }
-        let tenths = Int((meters / 100).rounded())
-        return "\(tenths / 10).\(tenths % 10)km"
+        return .kilometerTenths(Int((meters / 100).rounded()))
     }
 }
