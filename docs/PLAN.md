@@ -31,6 +31,7 @@
 | `PlaceCandidate` | `Search/PlaceCandidate.swift` | 検索候補（`name`, `coordinate`, `address`）。`makePlace(sourceURL:savedAt:)` で「行きたい」の `Place` を作る |
 | `PlaceSearch` | `Search/PlaceSearch.swift` | MapKit での場所解決。`candidates(for:limit:)`（検索語があれば名前検索、座標だけなら逆ジオコーディング）・`candidates(matching:near:limit:)`・`candidates(at:limit:)` |
 | `PlaceResolution` | `Search/PlaceResolution.swift` | `decide(candidates:query:)` が `.single` / `.choose` / `.none` を返す純粋関数（確認なしで保存してよいかの判定）。`normalizedName(_:)` |
+| `ShareFlow` | `ShareFlow.swift` | Share Extension の分岐を決める純粋関数。`firstStep(query:candidates:)` が解析結果と `PlaceResolution.decide` から最初の画面（即保存 / 候補選択）を決める。`sourceURL(query:sharedURL:)`・`sharedText(attachmentText:contentText:title:)` で sourceURL・テキストの優先順位を決める |
 | `SaveCopy` | `SaveCopy.swift` | 保存まわりの文言（保存したよ。あとは忘れていいよ / 見つからない / 保存失敗） |
 | `SavedConfirmationView` | `UI/SavedConfirmationView.swift` | 保存後の確認チップ（glassEffect を使う唯一の箇所）。アプリ・Share Extension で共用 |
 
@@ -60,6 +61,7 @@
 | `ContentView` | `Anosa/ContentView.swift` | NavigationStack。上部 `safeAreaBar` の segmented Picker で絞り込み、toolbar の＋で手動追加の sheet |
 | `PlaceListView` | `Anosa/PlaceListView.swift` | `@Query` で 1 ステータス分の一覧。スワイプでステータス変更・削除（PlaceStore 経由）。空なら ContentUnavailableView |
 | `AddPlaceView` | `Anosa/AddPlaceView.swift` | `.searchable` → `PlaceSearch` の候補 → タップで保存 → 確認チップを 1 秒出して閉じる |
+| `PlaceStatus`（extension） | `Anosa/PlaceStatus+Display.swift` | 一覧の絞り込み名・スワイプのボタン名・SF Symbols 名 |
 | `SaveToAnosaIntent` / `AnosaShortcuts` | `Anosa/Intents/` | App Intent「Anosaに保存」（先頭候補を保存）とフレーズ「Anosaに保存」 |
 
 ## Share Extension（M2）
@@ -68,8 +70,7 @@
 | --- | --- | --- |
 | `ShareViewController` | `AnosaShare/ShareViewController.swift` | principal class（UIKit）。`ShareView` を `UIHostingController` で載せ、`completeRequest` / `cancelRequest` で閉じる |
 | `SharedItemLoader` | `AnosaShare/SharedItemLoader.swift` | `NSExtensionItem` から Web URL とテキストを取り出して `SharedInput` にする |
-| `ShareFlow` | `AnosaShare/ShareFlow.swift` | 解析結果と `PlaceResolution.decide` から最初の画面（即保存 / 候補選択）を決める純粋関数、sourceURL・テキストの優先順位 |
-| `ShareModel` | `AnosaShare/ShareModel.swift` | `@MainActor @Observable`。解析 → 検索 → 保存 → 確認チップ 1 秒 → 閉じる。PlaceStore（コンテナ）を保持 |
+| `ShareModel` | `AnosaShare/ShareModel.swift` | `@MainActor @Observable`。解析 → 検索 → 保存 → 確認チップ 1 秒 → 閉じる。分岐は AnosaKit の `ShareFlow` で決める。PlaceStore（コンテナ）を保持 |
 | `ShareView` | `AnosaShare/ShareView.swift` | 検索中は ProgressView のみ。候補選択は NavigationStack + List + `.searchable` + キャンセル |
 
 ## 検証
