@@ -24,3 +24,14 @@
 - 2026-10-08 M2: ModelContext はコンテナを強参照せず、解放後の操作でクラッシュするため、PlaceStore(container:) はコンテナを保持する。PlaceStore(context:) では呼び出し側がコンテナを保持する。
 - 2026-10-08 M2: 共有入力のパース: 入力 URL とテキスト中の http(s) URL を順に見て、最初に名前か座標を読めた地図 URL を使う。Apple マップ（maps.apple.com / maps.apple）は名前を name → q → address、座標を ll → coordinate（q が座標だけなら座標）。Google マップ（maps.google.* または google.* の /maps パス）は名前を /maps/place/<名前>/・/maps/search/<名前>/ → q / query、座標を @lat,lng → q / query。+ は空白として扱う。短縮 URL（maps.app.goo.gl 等）は展開しない。
 - 2026-10-08 M2: 名前は地図 URL のものをテキストより優先し、なければテキスト（URL を除き、空白・改行を半角スペース1つにまとめたもの）を使う。地図以外の URL からはホストやパスで名前を作らず、名前も座標もなければ nil。PlaceQuery.sourceURL には使った地図 URL、なければ最初の http(s) URL を入れる。
+- 2026-10-08 M2: 場所の解決は AnosaKit の PlaceSearch に共通化する。名前検索は MKLocalSearch（座標があればその座標を中心に 1km 四方の region に寄せる）、名前のない MKMapItem は候補にしない、該当なし（MKError.placemarkNotFound）は空配列、既定の上限は 10 件。
+- 2026-10-08 M2: 座標だけのクエリは MKReverseGeocodingRequest（iOS / watchOS / macOS 26 で使える）で逆ジオコーディングし、MKMapItem の name → MKAddress.shortAddress の順で名前にする。どちらもなければ候補にしない。候補の座標は逆ジオコーディング結果ではなく共有された座標を使う（ユーザーが指した地点のほうが正確なため）。
+- 2026-10-08 M2: iOS 26 で deprecated の MKPlacemark / placemark は使わない。座標は MKMapItem.location、住所は addressRepresentations.fullAddress(includingRegion: false, singleLine: true) → MKAddress.shortAddress → fullAddress の順。
+- 2026-10-08 M2: 確認なしで保存してよいかは PlaceResolution.decide(candidates:query:)（純粋関数）で決める。0 件は none、1 件は single。複数件は、検索語と座標があれば名前が一致し座標から 200m 以内で最も近い候補、座標がなければ先頭候補の名前が一致するときだけ先頭を single にし、それ以外（検索語なし・不一致）は choose。
+- 2026-10-08 M2: 名前の一致は、全角半角・大文字小文字を同一視し（ja_JP で folding）、空白・句読点・記号を除いた文字列どうしの完全一致とする。部分一致は使わない（「東京タワー」と「東京タワー 駐車場」を同じ場所にしないため）。
+- 2026-10-08 M2: App Group / entitlements（M1 では M3 以降としていた）を M2 に前倒しする。Share Extension とアプリで同じストアを使う必要が M2 で生じたため。Anosa と AnosaShare に group.com.example.anosa（プレースホルダー）の entitlements を project.yml から生成してコミットする。Team / Provisioning は設定せず、実 ID の設定は手動作業のまま。
+- 2026-10-08 M2: 保存後の確認チップ SavedConfirmationView と保存まわりの文言 SaveCopy は、Share Extension・App Intent と共有するため AnosaKit に置く。glassEffect を使うのはこのチップだけで、sheet 全体の上（コンテンツの上）に浮かせる。
+- 2026-10-08 M2: 手動追加は入力が 300ms 止まってから検索し、候補をタップしたら確認なしで保存、チップを 1 秒出して sheet を閉じる。手動追加の sourceURL は nil。保存に失敗したときだけアラートを出す。
+- 2026-10-08 M2: 一覧は @Query（statusRawValue で絞り込み、savedAt 降順）で表示し、ステータス変更・削除・保存は PlaceStore を通す。絞り込みの segmented Picker は safeAreaBar(edge: .top) に置き、独自背景は付けない。スワイプは他の 2 ステータスへの移動と削除で、削除は確認しない（凝った管理機能は作らない方針）。
+- 2026-10-08 M2: アプリの ModelContainer は AppContainer.shared（@MainActor の static）でプロセスの間保持し、一覧・手動追加・App Intent で共有する。永続ストアを開けなければインメモリで起動する（インメモリも作れない場合だけ停止する）。
+- 2026-10-08 M2: App Intent「Anosaに保存」は骨組みとして、場所名の検索結果の先頭を確認なしで保存する（Siri / ショートカットでは候補選択 UI を出さない）。String パラメータはフレーズに入れられないため、フレーズは「\(.applicationName)に保存」のみとし、場所名は実行時に聞く。App Shortcuts のフレーズのローカライズ（AppShortcuts.xcstrings）は未対応。
