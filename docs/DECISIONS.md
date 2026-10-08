@@ -17,3 +17,10 @@
 - 2026-10-08 M1: シミュレータ向けビルドは -sdk ではなく generic destination（scripts/ci/build-scheme.sh）で行う。-sdk iphonesimulator では Anosa に埋め込まれた Watch ターゲットまで iOS SDK でビルドされて失敗し、verify.conf の argv には空白を含む -destination を書けないため。デバイス名を指定しないので Xcode 26（CI）/ 27（手元）で同じコマンドが動き、worktree 間のシミュレータ衝突もない。
 - 2026-10-08 M1: AnosaKit のテストは swift test でホスト実行し、シミュレータ名を指定しない（手元の simctl では iOS 27 の iPhone 17 などが実在するが、検証コマンドはどのデバイス名にも依存させない）。
 - 2026-10-08 M1: xcodebuild -list に出る AnosaKit スキームはローカルパッケージから自動生成されるもの。ビルド対象スキームは5つとし、パッケージは swift test と各ターゲットのビルドで検証する。
+- 2026-10-08 M2: AnosaKit の Persistence/（PlaceEntity・AnosaStore・PlaceStore）だけ SwiftData に依存させる（M1 の「Foundation のみ」をこの部分で緩める）。判断エンジン等は引き続き Place 値型で動き、永続化モデルは保存・取得の境界でだけ変換する。
+- 2026-10-08 M2: PlaceEntity は status を rawValue の String（statusRawValue）、openingHours を JSON の Data で保存する。未知の status は「行きたい」、読めない営業時間は未設定として読む。
+- 2026-10-08 M2: App Group ID はプレースホルダー group.com.example.anosa。ストアは App Group コンテナの Anosa.store。App Group が取れない環境（署名なしのシミュレータ等）では ModelConfiguration の既定の場所にフォールバックする（この場合アプリと拡張でストアは共有されない）。
+- 2026-10-08 M2: PlaceStore は @MainActor。save は同じ id があれば全項目を上書き更新する。places は savedAt 降順。setStatus・delete は該当 id がなければ何もしない（通知アクションや Watch からの操作が削除済みの場所に届いても失敗扱いにしない）。
+- 2026-10-08 M2: ModelContext はコンテナを強参照せず、解放後の操作でクラッシュするため、PlaceStore(container:) はコンテナを保持する。PlaceStore(context:) では呼び出し側がコンテナを保持する。
+- 2026-10-08 M2: 共有入力のパース: 入力 URL とテキスト中の http(s) URL を順に見て、最初に名前か座標を読めた地図 URL を使う。Apple マップ（maps.apple.com / maps.apple）は名前を name → q → address、座標を ll → coordinate（q が座標だけなら座標）。Google マップ（maps.google.* または google.* の /maps パス）は名前を /maps/place/<名前>/・/maps/search/<名前>/ → q / query、座標を @lat,lng → q / query。+ は空白として扱う。短縮 URL（maps.app.goo.gl 等）は展開しない。
+- 2026-10-08 M2: 名前は地図 URL のものをテキストより優先し、なければテキスト（URL を除き、空白・改行を半角スペース1つにまとめたもの）を使う。地図以外の URL からはホストやパスで名前を作らず、名前も座標もなければ nil。PlaceQuery.sourceURL には使った地図 URL、なければ最初の http(s) URL を入れる。

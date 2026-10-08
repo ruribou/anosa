@@ -4,7 +4,7 @@
 
 ## AnosaKit（共有ロジック・Swift Package）
 
-`AnosaKit/`。Foundation のみに依存する値型と純粋関数。platforms は iOS 26 / watchOS 26 / macOS 26（テストをホストで回すため）。
+`AnosaKit/`。Foundation のみに依存する値型と純粋関数。M2 で `Persistence/` だけ SwiftData に依存する。platforms は iOS 26 / watchOS 26 / macOS 26（テストをホストで回すため）。
 
 | 型 | ファイル | 役割 |
 | --- | --- | --- |
@@ -23,6 +23,11 @@
 | `DecisionEngine` | `DecisionEngine.swift` | `placeToNotify(currentLocation:now:places:history:settings:openingHours:calendar:)` が今通知すべき 1 件を返す（なければ nil）。`priorityScore(...)` |
 | `NotificationCandidate` | `DecisionEngine.swift` | 判断結果（`place`, `distanceMeters`, `walkingMinutes`） |
 | `NotificationCopy` | `NotificationCopy.swift` | 通知 title 4 種、アクション名、body（`{場所名}・徒歩{n}分`）。文言の調整はこのファイルだけで行う |
+| `SharedInput` / `PlaceQuery` | `SharedInput.swift` | 共有入力（URL・テキスト）と、そこから取り出した検索クエリ（`text`, `coordinate`, `sourceURL`） |
+| `SharedInputParser` | `SharedInput.swift` | `query(from:)` が Apple マップ / Google マップの URL とテキストから `PlaceQuery` を作る（なければ nil） |
+| `PlaceEntity` | `Persistence/PlaceEntity.swift` | `Place` の SwiftData モデル（`@Model`）。`init(_:)`・`update(from:)`・`place` で値型と相互変換 |
+| `AnosaStore` | `Persistence/AnosaStore.swift` | `makeContainer(inMemory:)`。App Group（`group.com.example.anosa`）の `Anosa.store`、取れなければ既定の場所 |
+| `PlaceStore` | `Persistence/PlaceStore.swift` | `@MainActor`。`save`（同 id は更新）・`places(status:)`（savedAt 降順）・`place(id:)`・`setStatus(_:for:)`・`delete(id:)` |
 
 判断エンジンの評価順: 静音時間 → 1日上限 → 場所ごとに（ステータスが行きたい → スヌーズ → クールダウン → 距離 → 営業時間）→ 優先度スコア最小の 1 件。時刻の解釈はすべて引数の `Calendar` で行う。
 
