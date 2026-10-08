@@ -107,3 +107,7 @@
 - 2026-10-08 #19: Smart Stack の relevance は nearby → 1.0 − 0.5 × 距離/半径（0.5〜1.0）、noNearbyPlaces で台帳を除いた遠い場所がある → 0.1、全部台帳にある・noSavedPlaces・locationUnavailable → 0。近くにないときは名前・距離を出さない（place は nearby のときだけ）。
 - 2026-10-08 #19: accessoryInline は場所名が 8 文字以下（Character 単位、WidgetCopy.Watch.inlineNameLimit）なら「<名前>・徒歩<n>分」（通知の body と同じ形）、9 文字以上なら名前を切り詰めずに捨てて「行きたい場所まで徒歩<n>分」にする。
 - 2026-10-08 #19: Watch 用の文言は WidgetCopy.Watch に置き、iPhone 用の文言は変えない。近くにある＝rectangular に添える「近くにあるよ」・corner は「徒歩<n>分」、近くにない＝「また思い出すね」（inline・rectangular。corner はラベルなし）、保存なし＝「場所を保存すると、ここで思い出せるよ」（rectangular）／「場所を保存してね」（inline）／「保存してね」（corner）、現在地未取得＝「現在地がわかったら教えるね」（rectangular）／「現在地を待ってるよ」（inline）／「現在地待ち」（corner）。
+- 2026-10-08 #19: Watch のコンプリケーションで残す情報は、inline＝シンボル＋inlineText（名前・徒歩分、長い名前は徒歩分だけ）、circular＝近くにあるときピン＋「<n>分」・それ以外はシンボルだけ（名前・距離・文言は捨てる）、rectangular＝名前（主）→「徒歩<n>分・<距離>」（副）→「近くにあるよ」（余白があれば）・それ以外はシンボル＋状態の一言、corner＝シンボル＋cornerLabel（近くにないときはラベルなし）。
+- 2026-10-08 #19: 状態ごとのシンボルは、近くにある・近くにない＝"mappin"（近くにないは数字・名前なしの静かな待機）、保存なし＝"plus"、現在地未取得＝"location.slash"。View 側の private な関数 1 か所で対応させる。
+- 2026-10-08 #19: widgetAccentable は主情報（シンボル・名前・徒歩分と距離の行）だけに付け、状態の一言・「近くにあるよ」には付けない（「近くにあるよ」は secondary）。独自の色・背景・glassEffect は付けず、widgetRenderingMode による出し分けはしない。
+- 2026-10-08 #19: rectangular の長い名前は ViewThatFits(in: [.horizontal, .vertical]) で「一言＋名前 1 行＋副」→「名前 1 行＋副」→「名前 2 行まで（minimumScaleFactor 0.8、入らなければ 2 行目末で切る）＋副」の順に試す。名前が 1 行に入らないときは一言を捨てる。
