@@ -75,3 +75,6 @@
 - 2026-10-08 M4: placeholder と getSnapshot のプレビュー時（context.isPreview）は、ダミーの場所「行きたかったカフェ」・350m・徒歩5分（座標は 0,0 のダミー）を出す。プレビューでない getSnapshot は実際のスナップショットを読む。
 - 2026-10-08 M4: family ごとの表示: systemSmall は見出し・場所名（3 行まで）・距離・徒歩分、accessoryRectangular は見出し・場所名（1 行）・「距離・徒歩分」、accessoryInline は display.inlineText、accessoryCircular は狭いため場所名を出さずピンのアイコンと距離だけにする。空の状態は small / rectangular が display.message、circular は mappin.slash アイコン（message をアクセシビリティラベルに使う）。
 - 2026-10-08 M4: accented / vibrant 対応として、背景は containerBackground(for: .widget) に small は .fill.tertiary、accessory（rectangular / circular）は AccessoryWidgetBackground、inline は空にする。色は .primary / .secondary の階層スタイルだけを使い、強調する場所名と circular のピンに widgetAccentable を付ける。widgetURL は付けない（タップでアプリが開くだけ）。
+- 2026-10-08 M4: アプリは LocationService.saveSnapshot でスナップショットの保存に成功したとき（位置更新のたび）に WidgetCenter.shared.reloadAllTimelines() を呼ぶ。保存に失敗したときは呼ばない。ウィジェットの Timeline は .never なので、更新の契機はこれだけ。
+- 2026-10-08 M4: 場所の状態変更（「もう行った」・追加・削除・アーカイブ）ではスナップショットを作り直さず、次の位置更新（アプリを前面に出したときの requestLocation を含む）で反映する。M4 の範囲は位置変化でのウィジェット更新のため。
+- 2026-10-08 M4: Smart Stack 向けの relevance ヒントは、SPEC で Smart Stack が watchOS（AnosaWatchWidget のコンプリケーション / Smart Stack）の項目として挙がっているため M5 の範囲とし、iOS ウィジェット（M4）では設定しない。
