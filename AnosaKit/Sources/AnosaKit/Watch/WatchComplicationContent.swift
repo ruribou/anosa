@@ -32,18 +32,9 @@ public struct WatchComplicationContent: Hashable, Sendable {
         place.map { "徒歩\($0.walkingMinutes)分" }
     }
 
-    /// 距離の表示。場所がなければ nil。
+    /// 距離の表示（iOS ウィジェットと同じ `DistanceText.format`）。場所がなければ nil。
     public var distanceText: String? {
-        place.map { Self.distanceText(meters: $0.distanceMeters) }
-    }
-
-    /// 四捨五入して 1000m 未満は「<n>m」、それ以上は 100m 単位で四捨五入した「<x.x>km」。
-    public static func distanceText(meters: Double) -> String {
-        let clamped = max(0, meters)
-        let rounded = Int(clamped.rounded())
-        if rounded < 1000 { return "\(rounded)m" }
-        let tenths = Int((clamped / 100).rounded())
-        return "\(tenths / 10).\(tenths % 10)km"
+        place.map { DistanceText.format(meters: $0.distanceMeters) }
     }
 
     /// 場所なし → 0、通知の半径以内 → 1.0 − 0.5 × 距離/半径（0.5〜1.0）、それより遠い → 0.1。

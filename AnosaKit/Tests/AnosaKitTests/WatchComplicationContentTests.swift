@@ -80,13 +80,12 @@ struct WatchComplicationContentTests {
         #expect(WatchComplicationContent.relevance(for: Self.nearby(distance: 1), settings: settings) == 0.1)
     }
 
-    @Test func 距離は1000m未満はm表記でそれ以上はkm表記() {
-        #expect(WatchComplicationContent.distanceText(meters: 0) == "0m")
-        #expect(WatchComplicationContent.distanceText(meters: 123.4) == "123m")
-        #expect(WatchComplicationContent.distanceText(meters: 999.4) == "999m")
-        #expect(WatchComplicationContent.distanceText(meters: 999.5) == "1.0km")
-        #expect(WatchComplicationContent.distanceText(meters: 1250) == "1.3km")
-        #expect(WatchComplicationContent.distanceText(meters: 12_340) == "12.3km")
-        #expect(WatchComplicationContent.distanceText(meters: -5) == "0m")
+    @Test func 距離はiOSウィジェットと同じ書式で出す() {
+        for meters in [0, 123.4, 996, 1250, 12_340] {
+            let content = WatchComplicationContent(place: Self.nearby(distance: meters))
+            #expect(content.distanceText == DistanceText.format(meters: meters))
+        }
+        #expect(WatchComplicationContent(place: Self.nearby(distance: 123.4)).distanceText == "120m")
+        #expect(WatchComplicationContent(place: Self.nearby(distance: 996)).distanceText == "1.0km")
     }
 }

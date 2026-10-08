@@ -2,6 +2,7 @@ import AnosaKit
 import Foundation
 import OSLog
 import WatchConnectivity
+import WidgetKit
 
 /// iPhone 側の WatchConnectivity。
 /// スナップショットを applicationContext（とコンプリケーション用 userInfo）で Watch に送り、
@@ -97,7 +98,7 @@ final class WatchSyncService: NSObject {
         send(snapshot)
     }
 
-    /// Watch の「もう行った」を反映し、最後のスナップショットを同じ現在地のまま作り直して保存・送信する。
+    /// Watch の「もう行った」を反映し、最後のスナップショットを同じ現在地のまま作り直して保存し、iOS のウィジェットの更新を頼んで Watch に送る。
     /// 該当する場所がなくても作り直して送る（Watch 側の台帳が反映済みとして消せるように）。
     private func applyVisited(_ message: WatchVisitedMessage) {
         do {
@@ -115,13 +116,18 @@ final class WatchSyncService: NSObject {
             return
         }
         guard let snapshot = snapshotStore.load() else { return }
+        let refreshed: LocationSnapshot
         do {
-            let refreshed = snapshot.refreshed(places: try store.places(status: .wantToGo), settings: settings)
+            refreshed = snapshot.refreshed(places: try store.places(status: .wantToGo), settings: settings)
             try snapshotStore.save(refreshed)
-            send(refreshed)
         } catch {
             Self.logger.error("スナップショットを作り直せません: \(error.localizedDescription, privacy: .public)")
+            return
         }
+        // ウィジェットの Timeline は .never なので、作り直したスナップショットを出すにはここで更新を頼む。
+        WidgetCenter.shared.reloadAllTimelines()
+        Self.logger.info("ウィジェットの更新を依頼しました")
+        send(refreshed)
     }
 }
 
