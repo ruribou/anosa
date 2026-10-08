@@ -42,6 +42,18 @@ public struct WatchSyncContext: Hashable, Sendable {
         else { return nil }
         self.init(snapshot: snapshot, generatedAt: generatedAt)
     }
+
+    /// 最後に取り込んだ generatedAt がこれより未来にあれば、iPhone の時計が戻ったとみなして信用しない。
+    public static let futureTolerance: TimeInterval = 10 * 60
+
+    /// Watch が届いた辞書を取り込むか。applicationContext とコンプリケーション用 userInfo の到着順は保証されないため、
+    /// 最後に取り込んだもの以前（同時刻を含む）は捨てる。
+    /// ただし `lastAccepted` が `now` から `futureTolerance` を超えて未来にあるときは信用せず取り込む（ちょうど許容幅は信用する）。
+    public static func shouldAccept(generatedAt: Date, lastAccepted: Date?, now: Date) -> Bool {
+        guard let lastAccepted else { return true }
+        if lastAccepted.timeIntervalSince(now) > futureTolerance { return true }
+        return generatedAt > lastAccepted
+    }
 }
 
 /// Watch → iPhone の「もう行った」。transferUserInfo で送る。

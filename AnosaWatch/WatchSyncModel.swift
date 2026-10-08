@@ -49,9 +49,9 @@ final class WatchSyncModel: NSObject {
         }
         isActivating = true
         session.delegate = self
-        contentPendingObservation = session.observe(\.hasContentPending) { @Sendable _, _ in
+        contentPendingObservation = session.observe(\.hasContentPending) { @Sendable [weak self] _, _ in
             Task { @MainActor in
-                self.completeRefreshTasksIfIdle()
+                self?.completeRefreshTasksIfIdle()
             }
         }
         session.activate()
@@ -102,7 +102,8 @@ final class WatchSyncModel: NSObject {
     private func apply(_ context: WatchSyncContext) {
         defer { completeRefreshTasksIfIdle() }
         let defaults = UserDefaults.standard
-        if let last = defaults.object(forKey: lastGeneratedAtKey) as? Date, context.generatedAt <= last {
+        let last = defaults.object(forKey: lastGeneratedAtKey) as? Date
+        guard WatchSyncContext.shouldAccept(generatedAt: context.generatedAt, lastAccepted: last, now: Date()) else {
             return
         }
         do {

@@ -122,6 +122,32 @@ struct WatchSyncTests {
         #expect(refreshed.places.map(\.id) == [middle.id, far.id])
     }
 
+    @Test func 最初の辞書は取り込む() {
+        #expect(WatchSyncContext.shouldAccept(generatedAt: Fixtures.now, lastAccepted: nil, now: Fixtures.now))
+    }
+
+    @Test func 最後に取り込んだものより新しい辞書だけ取り込む() {
+        let last = Fixtures.now
+        let now = Fixtures.now.addingTimeInterval(60)
+        #expect(WatchSyncContext.shouldAccept(generatedAt: last.addingTimeInterval(1), lastAccepted: last, now: now))
+        #expect(!WatchSyncContext.shouldAccept(generatedAt: last, lastAccepted: last, now: now))
+        #expect(!WatchSyncContext.shouldAccept(generatedAt: last.addingTimeInterval(-1), lastAccepted: last, now: now))
+    }
+
+    @Test func 許容幅ちょうど未来の最後の時刻は信用する() {
+        let last = Fixtures.now.addingTimeInterval(WatchSyncContext.futureTolerance)
+        #expect(WatchSyncContext.futureTolerance == 600)
+        #expect(!WatchSyncContext.shouldAccept(generatedAt: Fixtures.now, lastAccepted: last, now: Fixtures.now))
+        #expect(!WatchSyncContext.shouldAccept(generatedAt: last, lastAccepted: last, now: Fixtures.now))
+        #expect(WatchSyncContext.shouldAccept(generatedAt: last.addingTimeInterval(1), lastAccepted: last, now: Fixtures.now))
+    }
+
+    @Test func 許容幅を超えて未来の最後の時刻は信用せず古い辞書も取り込む() {
+        let last = Fixtures.now.addingTimeInterval(WatchSyncContext.futureTolerance + 1)
+        #expect(WatchSyncContext.shouldAccept(generatedAt: Fixtures.now, lastAccepted: last, now: Fixtures.now))
+        #expect(WatchSyncContext.shouldAccept(generatedAt: Fixtures.now.addingTimeInterval(-3600), lastAccepted: last, now: Fixtures.now))
+    }
+
     @Test func 作り直しは既定で5件まで() {
         let places = (1...7).map { Fixtures.place(metersNorth: Double($0) * 100) }
         let original = LocationSnapshot(location: Fixtures.origin, capturedAt: Fixtures.now, places: [])
