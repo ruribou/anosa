@@ -66,3 +66,7 @@
 - 2026-10-08 M3: DEBUG ビルドだけ、起動引数 -AnosaDebugAddPlace "<名前>,<緯度>,<経度>"（名前に「,」を含めてよいよう後ろの 2 つを座標として読む）で「行きたい」に 1 件追加する。同名かつ座標の差が 0.000001 度未満の場所があれば追加しない。位置の処理より前に実行する。
 - 2026-10-08 M3: シミュレータ（Xcode 27 の iOS シミュレータで確認）ではリージョン監視が使えない（CLLocationManager.isMonitoringAvailable が false、CLMonitor の条件は conditionUnsupported で unmonitored のまま）。シミュレータでの通知の確認は significant-location-change（xcrun simctl location start で経路を移動させると届く。set の 1 回だけでは届かないことがある）か、位置を変えてからアプリを前面に出す（requestLocation）で行う。判断の流れは os_log（subsystem com.example.anosa、category location / notification）に座標を含めずに出す。
 - 2026-10-08 M3: 判断の前に通知の許可状態（notificationSettings の authorizationStatus）を確かめ、authorized / provisional / ephemeral 以外なら判断も記録もせずログだけ残す（通知が出ないのにクールダウンと 1 日の上限を消費しないため）。スナップショット保存とリージョンの入れ替えは許可に関係なく続ける。許可の取得が async なので、判断と通知は前の判断の完了を待つ Task チェーンで位置更新の順に 1 本ずつ実行する。
+- 2026-10-08 M4: ウィジェットの表示は AnosaKit の NearestPlaceDisplay(snapshot:)（純粋関数）で決める。スナップショットなし → locationUnavailable、近い「行きたい」場所が 0 件 → noNearbyPlaces、それ以外は snapshot.places の先頭（M3 で近い順に並べ済み）を nearest として名前・距離・徒歩分を出す。
+- 2026-10-08 M4: スナップショットの古さ（capturedAt）では表示を変えない。位置は大きく動いたときにだけ更新されるため、古くても現在地とずれているとは限らず、「古い」と出すと見るたびに気にさせてしまうため。
+- 2026-10-08 M4: 距離の表示は DistanceText.format（ロケール非依存の固定書式）。10m 単位に四捨五入して 1000m 未満なら「350m」、それ以外は 0.1km 単位に四捨五入して常に小数 1 桁の「1.2km」（995m 以上は「1.0km」で「1000m」は出さない、1050m は「1.1km」）。負の値・NaN は 0m、100,000km を超える値は 100,000km として扱う。
+- 2026-10-08 M4: ウィジェットの文言は AnosaKit の WidgetCopy に集約する。見出し「いちばん近く」、位置未取得「現在地がわかったら教えるね」（inline「現在地を待ってるよ」）、近くに 0 件「近くにはまだないみたい」（inline「近くにはないよ」）、徒歩分は通知 body と同じ「徒歩{n}分」、inline は「{場所名}・{距離}」。
