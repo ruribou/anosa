@@ -70,3 +70,8 @@
 - 2026-10-08 M4: スナップショットの古さ（capturedAt）では表示を変えない。位置は大きく動いたときにだけ更新されるため、古くても現在地とずれているとは限らず、「古い」と出すと見るたびに気にさせてしまうため。
 - 2026-10-08 M4: 距離の表示は DistanceText.format（ロケール非依存の固定書式）。10m 単位に四捨五入して 1000m 未満なら「350m」、それ以外は 0.1km 単位に四捨五入して常に小数 1 桁の「1.2km」（995m 以上は「1.0km」で「1000m」は出さない、1050m は「1.1km」）。負の値・NaN は 0m、100,000km を超える値は 100,000km として扱う。
 - 2026-10-08 M4: ウィジェットの文言は AnosaKit の WidgetCopy に集約する。見出し「いちばん近く」、位置未取得「現在地がわかったら教えるね」（inline「現在地を待ってるよ」）、近くに 0 件「近くにはまだないみたい」（inline「近くにはないよ」）、徒歩分は通知 body と同じ「徒歩{n}分」、inline は「{場所名}・{距離}」。
+- 2026-10-08 M4: AnosaWidget に AnosaKit 依存と、Anosa / AnosaShare と同じ App Group（group.com.example.anosa）の entitlements（AnosaWidget/AnosaWidget.entitlements、project.yml から生成）を追加する。プレースホルダーのウィジェットは NearestPlaceWidget（kind "NearestPlaceWidget"）に置き換える。
+- 2026-10-08 M4: ウィジェットの Timeline は現在の LocationSnapshot から 1 エントリだけ作り、policy は .never にする。表示はスナップショットだけで決まり時刻では変わらないため、位置が変わったときにアプリが WidgetCenter.reloadAllTimelines を呼んで更新する（ウィジェット側の定期更新は予算を使うだけで内容が変わらない）。
+- 2026-10-08 M4: placeholder と getSnapshot のプレビュー時（context.isPreview）は、ダミーの場所「行きたかったカフェ」・350m・徒歩5分（座標は 0,0 のダミー）を出す。プレビューでない getSnapshot は実際のスナップショットを読む。
+- 2026-10-08 M4: family ごとの表示: systemSmall は見出し・場所名（3 行まで）・距離・徒歩分、accessoryRectangular は見出し・場所名（1 行）・「距離・徒歩分」、accessoryInline は display.inlineText、accessoryCircular は狭いため場所名を出さずピンのアイコンと距離だけにする。空の状態は small / rectangular が display.message、circular は mappin.slash アイコン（message をアクセシビリティラベルに使う）。
+- 2026-10-08 M4: accented / vibrant 対応として、背景は containerBackground(for: .widget) に small は .fill.tertiary、accessory（rectangular / circular）は AccessoryWidgetBackground、inline は空にする。色は .primary / .secondary の階層スタイルだけを使い、強調する場所名と circular のピンに widgetAccentable を付ける。widgetURL は付けない（タップでアプリが開くだけ）。
