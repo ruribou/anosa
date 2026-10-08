@@ -23,7 +23,8 @@ final class LocationService: NSObject {
     @ObservationIgnored private let store: PlaceStore
     @ObservationIgnored private let evaluator: LocationEvaluator
     @ObservationIgnored private let snapshotStore = LocationSnapshotStore.shared()
-    @ObservationIgnored private let settings: AnosaSettings
+    /// 使うたびに読む設定（設定画面での変更を再起動なしで反映するため）。
+    @ObservationIgnored private let settings: @MainActor () -> AnosaSettings
     @ObservationIgnored private var monitor: CLMonitor?
     @ObservationIgnored private var monitorTask: Task<Void, Never>?
     /// リージョンの入れ替えを 1 本ずつ順に実行するための直前のタスク。
@@ -39,7 +40,11 @@ final class LocationService: NSObject {
     /// リージョン侵入時に、この時間より新しい現在地があればそれで判断する。
     private static let freshLocationInterval: TimeInterval = 2 * 60
 
-    init(notifier: PlaceNotifier, watchSync: WatchSyncService, settings: AnosaSettings = .default) {
+    init(
+        notifier: PlaceNotifier,
+        watchSync: WatchSyncService,
+        settings: @escaping @MainActor () -> AnosaSettings = { UserPreferencesStore.shared().settings() }
+    ) {
         self.notifier = notifier
         self.watchSync = watchSync
         self.settings = settings
@@ -48,7 +53,6 @@ final class LocationService: NSObject {
         evaluator = LocationEvaluator(
             store: store,
             history: NotificationHistoryStore.shared(),
-            settings: settings,
             calendar: .autoupdatingCurrent
         )
         authorizationStatus = manager.authorizationStatus
@@ -129,7 +133,7 @@ final class LocationService: NSObject {
     }
 
     private func saveSnapshot(location: Coordinate, at date: Date, places: [Place]) {
-        let snapshot = LocationSnapshot.make(location: location, capturedAt: date, places: places, settings: settings)
+        let snapshot = LocationSnapshot.make(location: location, capturedAt: date, places: places, settings: settings())
         do {
             try snapshotStore.save(snapshot)
         } catch {
@@ -160,6 +164,7 @@ final class LocationService: NSObject {
             return
         }
         let candidate: NotificationCandidate?
+        evaluator.settings = settings()
         do {
             candidate = try evaluator.evaluate(currentLocation: location, now: now)
         } catch {
@@ -197,6 +202,7 @@ final class LocationService: NSObject {
     }
 
     private func applyRegionPlan(monitor: CLMonitor, location: Coordinate, places: [Place]) async {
+        let settings = self.settings()
         let radius = settings.regionRadiusMeters
         var monitored = Set(await monitor.identifiers)
         // 半径が変わったリージョンは外して張り直す（同じ識別子のままだと RegionPlanner は追加しないため）。
