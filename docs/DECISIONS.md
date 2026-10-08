@@ -38,3 +38,6 @@
 - 2026-10-08 M2: Share Extension の入力は、添付のうち最初の Web URL（UTType.url、http(s) のみ）と、テキストは 添付の plainText → attributedContentText → attributedTitle の順で最初の空でない 1 つを使う（混ぜると検索語が長くなり名前で検索できなくなるため）。読み込めなかった添付は無視する。
 - 2026-10-08 M2: Share Extension は decide が single なら確認なしで保存し、確認チップを 1 秒出して completeRequest で閉じる。choose / none / 入力から何も取れない / 初回検索の失敗は候補選択 UI（検索欄の初期値はクエリのテキスト、再検索は入力が 300ms 止まってから、座標があればその周辺に寄せる）。キャンセルは cancelRequest（CocoaError.userCancelled）。検索中は ProgressView だけでキャンセルボタンも出さない。
 - 2026-10-08 M2: Share Extension の保存失敗はアラートで SaveCopy.saveFailed を出し、候補選択 UI（キャンセルで閉じられる）に残す。確認なし保存で失敗した場合はその候補 1 件を候補選択 UI に出す。sourceURL は PlaceQuery.sourceURL、なければ共有された Web URL。
+- 2026-10-08 M2: 検索に失敗したら、Share Extension・手動追加とも同じ検索語で再試行できるようにする。失敗表示（ContentUnavailableView）に標準ボタン「もう一度さがす」を置き、検索の確定（onSubmit(of: .search)）でも同じ語で検索し直す。失敗した検索語は検索済みとして記録しない。座標だけの共有で初回の逆ジオコーディングに失敗した場合は、検索欄が空のままの再試行で逆ジオコーディングをやり直す。
+- 2026-10-08 M2: アプリの起動中に Share Extension（別プロセス・別 ModelContainer）から保存した場所が、一覧の @Query にすぐ反映されるかは未確認。反映されない場合は scenePhase が active に戻ったときの再取得などを後続で対応する。
+- 2026-10-08 M2: App Intent「Anosaに保存」は PlaceResolution.decide を通さず先頭候補を保存している。保存基準を Share Extension（decide が single のときだけ確認なしで保存）に揃えるかは後続で見直す。

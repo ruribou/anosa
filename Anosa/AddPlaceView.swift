@@ -12,6 +12,8 @@ struct AddPlaceView: View {
     @State private var phase: Phase = .idle
     @State private var isSaved = false
     @State private var isShowingSaveError = false
+    /// 再試行のたびに増やす。`task(id:)` を同じ検索語でも動かし直すために使う。
+    @State private var searchAttempt = 0
     @FocusState private var isSearchFocused: Bool
 
     private static let logger = Logger(subsystem: "com.example.anosa", category: "add")
@@ -48,7 +50,10 @@ struct AddPlaceView: View {
                     }
                 }
             }
-            .task(id: searchText) {
+            .onSubmit(of: .search) {
+                retrySearch()
+            }
+            .task(id: SearchRequest(text: searchText, attempt: searchAttempt)) {
                 await search(searchText)
             }
             .onAppear {
@@ -80,7 +85,15 @@ struct AddPlaceView: View {
         case .results:
             EmptyView()
         case .failed:
-            ContentUnavailableView("検索できなかったよ", systemImage: "exclamationmark.magnifyingglass", description: Text("通信状態を確かめて、もう一度試してね。"))
+            ContentUnavailableView {
+                Label("検索できなかったよ", systemImage: "exclamationmark.magnifyingglass")
+            } description: {
+                Text("通信状態を確かめて、もう一度試してね。")
+            } actions: {
+                Button("もう一度さがす") {
+                    retrySearch()
+                }
+            }
         }
     }
 
@@ -105,6 +118,14 @@ struct AddPlaceView: View {
         }
     }
 
+    /// 失敗表示の再試行ボタンや検索の確定から、同じ検索語でも検索し直す。
+    private func retrySearch() {
+        guard phase != .searching,
+              !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        phase = .searching
+        searchAttempt += 1
+    }
+
     private func save(_ candidate: PlaceCandidate) {
         guard !isSaved else { return }
         do {
@@ -121,6 +142,11 @@ struct AddPlaceView: View {
             dismiss()
         }
     }
+}
+
+private struct SearchRequest: Equatable {
+    let text: String
+    let attempt: Int
 }
 
 private struct CandidateRow: View {

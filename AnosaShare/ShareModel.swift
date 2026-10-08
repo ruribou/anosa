@@ -27,6 +27,8 @@ final class ShareModel {
     private(set) var phase: Phase = .resolving
     private(set) var searchState: SearchState = .idle
     private(set) var isSaved = false
+    /// 再試行のたびに増やす。`task(id:)` を同じ検索語でも動かし直すために使う。
+    private(set) var searchAttempt = 0
     var searchText = ""
     var isShowingSaveError = false
 
@@ -82,7 +84,8 @@ final class ShareModel {
     func search(_ text: String) async {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed != lastSearchedText else { return }
-        guard !trimmed.isEmpty else {
+        let coordinateOnly = trimmed.isEmpty && ShareFlow.nonEmpty(query?.text) == nil ? query?.coordinate : nil
+        guard !trimmed.isEmpty || (coordinateOnly != nil && emptyTextCandidates.isEmpty) else {
             lastSearchedText = trimmed
             searchState = emptyTextCandidates.isEmpty ? .idle : .results(emptyTextCandidates)
             return
@@ -90,7 +93,14 @@ final class ShareModel {
         do {
             try await Task.sleep(for: Self.searchDelay)
             searchState = .searching
-            let results = try await PlaceSearch.candidates(matching: trimmed, near: query?.coordinate)
+            let results: [PlaceCandidate]
+            if let coordinateOnly {
+                // 座標だけの共有で初回の逆ジオコーディングに失敗したときの再試行。
+                results = try await PlaceSearch.candidates(at: coordinateOnly)
+                emptyTextCandidates = results
+            } else {
+                results = try await PlaceSearch.candidates(matching: trimmed, near: query?.coordinate)
+            }
             try Task.checkCancellation()
             lastSearchedText = trimmed
             searchState = .results(results)
@@ -98,9 +108,18 @@ final class ShareModel {
             return
         } catch {
             Self.logger.error("場所の検索に失敗しました: \(error.localizedDescription, privacy: .public)")
-            lastSearchedText = trimmed
+            // 同じ検索語で再試行できるよう、検索済みとして記録しない。
+            lastSearchedText = nil
             searchState = .failed
         }
+    }
+
+    /// 失敗表示の再試行ボタンや検索の確定から、同じ検索語でも検索し直す。
+    func retrySearch() {
+        guard searchState != .searching else { return }
+        lastSearchedText = nil
+        searchState = .searching
+        searchAttempt += 1
     }
 
     func save(_ candidate: PlaceCandidate) {

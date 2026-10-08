@@ -51,7 +51,10 @@ private struct ShareCandidatePicker: View {
                     }
                 }
             }
-            .task(id: model.searchText) {
+            .onSubmit(of: .search) {
+                model.retrySearch()
+            }
+            .task(id: SearchRequest(text: model.searchText, attempt: model.searchAttempt)) {
                 await model.search(model.searchText)
             }
             .alert(SaveCopy.saveFailed, isPresented: $model.isShowingSaveError) {}
@@ -70,9 +73,22 @@ private struct ShareCandidatePicker: View {
         case .results:
             EmptyView()
         case .failed:
-            ContentUnavailableView("検索できなかったよ", systemImage: "exclamationmark.magnifyingglass", description: Text("通信状態を確かめて、もう一度試してね。"))
+            ContentUnavailableView {
+                Label("検索できなかったよ", systemImage: "exclamationmark.magnifyingglass")
+            } description: {
+                Text("通信状態を確かめて、もう一度試してね。")
+            } actions: {
+                Button("もう一度さがす") {
+                    model.retrySearch()
+                }
+            }
         }
     }
+}
+
+private struct SearchRequest: Equatable {
+    let text: String
+    let attempt: Int
 }
 
 private struct CandidateRow: View {
