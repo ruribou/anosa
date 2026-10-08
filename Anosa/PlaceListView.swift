@@ -110,6 +110,7 @@ private struct PlaceRow: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .imageScale(.small)
+                .labelStyle(CompactHintLabelStyle())
                 .padding(.top, 2)
         }
         .padding(.vertical, 2)
@@ -122,7 +123,7 @@ private struct PlaceRow: View {
     private var hints: some View {
         if let distanceText = detail.distanceText {
             ViewThatFits(in: .horizontal) {
-                HStack(spacing: 12) {
+                HStack(spacing: 14) {
                     savedAgo
                     distance(distanceText)
                 }
@@ -142,5 +143,15 @@ private struct PlaceRow: View {
 
     private func distance(_ text: String) -> some View {
         Label(text, systemImage: "figure.walk")
+    }
+}
+
+/// 控えめな 1 行のラベル。標準の Label はシンボルと文字の間が広く、項目がばらけて見えるため詰める。
+private struct CompactHintLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            configuration.icon
+            configuration.title
+        }
     }
 }
