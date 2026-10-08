@@ -26,6 +26,8 @@ final class LocationService: NSObject {
     @ObservationIgnored private var monitorTask: Task<Void, Never>?
     /// リージョンの入れ替えを 1 本ずつ順に実行するための直前のタスク。
     @ObservationIgnored private var regionTask: Task<Void, Never>?
+    /// 判断と通知を 1 本ずつ順に実行するための直前のタスク。
+    @ObservationIgnored private var evaluationTask: Task<Void, Never>?
     @ObservationIgnored private var isStarted = false
     @ObservationIgnored private var isMonitoringSignificantChanges = false
 
@@ -132,7 +134,23 @@ final class LocationService: NSObject {
         }
     }
 
+    /// 通知の許可を確かめてから判断する。許可がなければ通知が出ないので、判断も記録もしない
+    /// （記録するとクールダウンと 1 日の上限を消費してしまうため）。
+    /// 許可の取得は async なので、前の判断の完了を待って位置更新の順に 1 本ずつ実行する。
     private func evaluate(at location: Coordinate, now: Date) {
+        let previous = evaluationTask
+        evaluationTask = Task { [weak self] in
+            await previous?.value
+            guard let self else { return }
+            await self.evaluateIfNotificationsAllowed(at: location, now: now)
+        }
+    }
+
+    private func evaluateIfNotificationsAllowed(at location: Coordinate, now: Date) async {
+        guard await notifier.canPost() else {
+            Self.logger.info("通知が許可されていないため判断しません")
+            return
+        }
         let candidate: NotificationCandidate?
         do {
             candidate = try evaluator.evaluate(currentLocation: location, now: now)
@@ -145,7 +163,7 @@ final class LocationService: NSObject {
             return
         }
         Self.logger.info("近くの場所を通知します")
-        Task { await notifier.post(candidate) }
+        await notifier.post(candidate)
     }
 
     // MARK: - リージョン監視

@@ -43,6 +43,18 @@ final class PlaceNotifier: NSObject {
         }
     }
 
+    /// 通知を出せる許可があるか（authorized / provisional / ephemeral）。
+    func canPost() async -> Bool {
+        switch await center.notificationSettings().authorizationStatus {
+        case .authorized, .provisional, .ephemeral:
+            true
+        case .notDetermined, .denied:
+            false
+        @unknown default:
+            false
+        }
+    }
+
     /// 即時に通知する。同じ場所の通知は置き換わる。
     func post(_ candidate: NotificationCandidate) async {
         let content = UNMutableNotificationContent()
