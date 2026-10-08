@@ -43,6 +43,9 @@
 | `NotificationActionHandler` | `Notifications/NotificationActionHandler.swift` | `@MainActor`。`apply(_:placeID:now:store:settings:calendar:)` で今日はやめる→snoozedUntil、もう行った→visited、行ってみる→状態不変で URL。`mapsWalkingURL(for:)` |
 | `NotificationHistoryStore` | `Notifications/NotificationHistoryStore.swift` | 通知履歴を App Group の UserDefaults（キー `notificationHistory`）に JSON で保存。`records()`・`append(_:now:settings:)`（保持期間より古い記録を刈る） |
 | `SharedDefaults` | `Persistence/SharedDefaults.swift` | App Group の UserDefaults（取れなければ `.standard`） |
+| `WatchSyncKey` / `WatchSyncContext` / `WatchVisitedMessage` | `Watch/WatchSync.swift` | WatchConnectivity の辞書（property list 型のみ）。iPhone → Watch のスナップショット（`kind: snapshot`、applicationContext とコンプリケーション用 userInfo で共用）と Watch → iPhone の「もう行った」（`kind: visited`）。不正な辞書は nil。`LocationSnapshot.refreshed(places:settings:limit:)` で同じ現在地のまま作り直す |
+| `WatchVisitedLedger` / `WatchVisitedLedgerStore` | `Watch/WatchVisitedLedger.swift` | Watch で押した未反映の「もう行った」（`[UUID: Date]`）。`markVisited`・`visiblePlaces(in:limit:)`（既定 3 件）・`reconciled(with:now:)`（反映済み・1 日超を除く）。App Group の UserDefaults（キー `watchVisitedLedger`）に JSON で保存 |
+| `WatchComplicationContent` | `Watch/WatchComplicationContent.swift` | コンプリケーションの表示内容（いちばん近い場所、inline・徒歩・距離の文言、場所なしの文言）と Smart Stack の `relevance` |
 
 判断エンジンの評価順: 静音時間 → 1日上限 → 場所ごとに（ステータスが行きたい → スヌーズ → クールダウン → 距離 → 営業時間）→ 優先度スコア最小の 1 件。時刻の解釈はすべて引数の `Calendar` で行う。
 
