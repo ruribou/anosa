@@ -19,6 +19,7 @@ targets:
     platform: iOS
     sources:
       - path: Anosa
+      - path: Shared/AppIcon.icon
     entitlements:
       path: Anosa/Anosa.entitlements
       properties:
@@ -37,6 +38,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.example.anosa
         TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     dependencies:
       - package: AnosaKit
       - target: AnosaShare
@@ -96,6 +98,7 @@ targets:
     platform: watchOS
     sources:
       - path: AnosaWatch
+      - path: Shared/AppIcon.icon
     entitlements:
       path: AnosaWatch/AnosaWatch.entitlements
       properties:
@@ -110,6 +113,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.example.anosa.watchkitapp
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     dependencies:
       - package: AnosaKit
       - target: AnosaWatchWidget
