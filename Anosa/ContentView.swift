@@ -11,7 +11,7 @@ struct ContentView: View {
 
     var body: some View {
         NavigationStack {
-            PlaceListView(status: status)
+            PlaceListView(status: status, onAdd: { isAdding = true })
                 .navigationTitle("Anosa")
                 .safeAreaBar(edge: .top) {
                     Picker("表示する場所", selection: $status) {
