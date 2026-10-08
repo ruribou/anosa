@@ -59,10 +59,10 @@
 | AnosaShare | app-extension（Share） | iOS | AnosaKit。Web URL 1件 / テキストを受け取る |
 | AnosaWidget | app-extension（WidgetKit） | iOS | — |
 | AnosaWatch | application | watchOS | AnosaKit、AnosaWatchWidget を埋め込み |
-| AnosaWatchWidget | app-extension（WidgetKit） | watchOS | — |
+| AnosaWatchWidget | app-extension（WidgetKit） | watchOS | AnosaKit |
 
 - `.xcodeproj` は生成物で git 管理しない。編集の正本は `project.yml`。各 Info.plist も `info:` から生成し、生成物をコミットする
-- 署名（Team / Provisioning）は設定しない。App Group の entitlements（`group.com.example.anosa`、プレースホルダー）は M2 で Anosa・AnosaShare に追加（`Anosa/Anosa.entitlements`・`AnosaShare/AnosaShare.entitlements` は project.yml から生成してコミット）
+- 署名（Team / Provisioning）は設定しない。App Group の entitlements（`group.com.example.anosa`、プレースホルダー）は M2 で Anosa・AnosaShare に追加（`Anosa/Anosa.entitlements`・`AnosaShare/AnosaShare.entitlements` は project.yml から生成してコミット）。M5 で AnosaWatch・AnosaWatchWidget にも追加（`AnosaWatch/AnosaWatch.entitlements`・`AnosaWatchWidget/AnosaWatchWidget.entitlements`）
 - M1 時点の各ターゲットは骨組み（プレースホルダー UI）のみ
 
 ## iOS アプリ本体（M2）
@@ -91,6 +91,16 @@
 | 型 | ファイル | 役割 |
 | --- | --- | --- |
 | `WatchSyncService` | `Anosa/Watch/WatchSyncService.swift` | `@MainActor`・`WCSessionDelegate`。AppDelegate で作って activate。`LocationService` がスナップショットを保存するたびに `WatchSyncContext` を applicationContext（条件つきでコンプリケーション用 userInfo）で送る。Watch から transferUserInfo で届いた「もう行った」を反映し、スナップショットを `refreshed` で作り直して保存・送信 |
+
+## Watch アプリ・コンプリケーション（M5）
+
+| 型 | ファイル | 役割 |
+| --- | --- | --- |
+| `AnosaWatchApp` | `AnosaWatch/AnosaWatchApp.swift` | `WKApplicationDelegateAdaptor` で `WatchAppDelegate` を持ち、その `WatchSyncModel` を `ContentView` に渡す |
+| `WatchAppDelegate` | `AnosaWatch/WatchAppDelegate.swift` | 起動時に `WatchSyncModel.activate()`。`WKWatchConnectivityRefreshBackgroundTask` を `WatchSyncModel` に渡し、他のタスクはすぐ完了 |
+| `WatchSyncModel` | `AnosaWatch/WatchSyncModel.swift` | `@MainActor @Observable`・`WCSessionDelegate`。iPhone からの `WatchSyncContext`（applicationContext・コンプリケーション用 userInfo・activate 時の receivedApplicationContext、古い generatedAt は捨てる）をスナップショットとして保存し、台帳を `reconciled` して保存、`WidgetCenter.reloadAllTimelines`。「もう行った」は台帳に記録して `transferUserInfo`。バックグラウンドタスクは hasContentPending が false になってから完了 |
+| `ContentView` | `AnosaWatch/ContentView.swift` | NavigationStack + List。`visiblePlaces`（3 件）ごとに名前・徒歩分と「行ってみる」（`MKMapItem.openInMaps` の徒歩ルート）「もう行った」。場所なしは ContentUnavailableView |
+| `NearbyPlaceWidget` / `NearbyPlaceProvider` / `NearbyPlaceWidgetView` | `AnosaWatchWidget/NearbyPlaceWidget.swift` | kind `AnosaWatchNearbyPlace`。App Group のスナップショットと台帳から `WatchComplicationContent` を作り、`TimelineEntryRelevance` 付きの entry 1 件・policy `.never`。accessoryInline / Circular / Rectangular / Corner |
 
 ## Share Extension（M2）
 
