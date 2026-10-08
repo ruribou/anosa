@@ -6,7 +6,9 @@ struct ShareView: View {
     @Bindable var model: ShareModel
 
     var body: some View {
-        Group {
+        // 確認なしの保存では phase が .resolving のまま中身が空になるため、透明な常在ビューを土台にしてチップを必ず描画する。
+        ZStack {
+            Color.clear
             switch model.phase {
             case .resolving:
                 if !model.isSaved {
@@ -15,8 +17,6 @@ struct ShareView: View {
             case .choosing:
                 ShareCandidatePicker(model: model)
             }
-        }
-        .overlay {
             if model.isSaved {
                 SavedConfirmationView()
                     .transition(.opacity)

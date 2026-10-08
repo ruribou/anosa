@@ -26,7 +26,7 @@ struct PlaceListView: View {
         List {
             ForEach(entities) { entity in
                 PlaceRow(place: entity.place)
-                    .swipeActions(edge: .trailing) {
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button("削除", systemImage: "trash", role: .destructive) {
                             perform { try $0.delete(id: entity.id) }
                         }

@@ -41,3 +41,8 @@
 - 2026-10-08 M2: 検索に失敗したら、Share Extension・手動追加とも同じ検索語で再試行できるようにする。失敗表示（ContentUnavailableView）に標準ボタン「もう一度さがす」を置き、検索の確定（onSubmit(of: .search)）でも同じ語で検索し直す。失敗した検索語は検索済みとして記録しない。座標だけの共有で初回の逆ジオコーディングに失敗した場合は、検索欄が空のままの再試行で逆ジオコーディングをやり直す。
 - 2026-10-08 M2: アプリの起動中に Share Extension（別プロセス・別 ModelContainer）から保存した場所が、一覧の @Query にすぐ反映されるかは未確認。反映されない場合は scenePhase が active に戻ったときの再取得などを後続で対応する。
 - 2026-10-08 M2: App Intent「Anosaに保存」は PlaceResolution.decide を通さず先頭候補を保存している。保存基準を Share Extension（decide が single のときだけ確認なしで保存）に揃えるかは後続で見直す。
+- 2026-10-08 M2: Share Extension の画面は透明な常在ビュー（Color.clear）を土台にした ZStack にし、確認チップはその最前面に置く。確認なしの保存では phase が .resolving のまま中身が空になり、Group の overlay ではチップが描画されないため。独自の背景色は付けない。
+- 2026-10-08 M2: Share Extension の分岐を決める純粋関数 ShareFlow（firstStep / sourceURL / sharedText）は、kit-test でテストするため AnosaKit に置く。
+- 2026-10-08 M2: 一覧のスワイプは allowsFullSwipe: false にし、削除はボタンのタップでだけ実行する（フルスワイプで誤って消さないため。確認ダイアログは引き続き出さない）。
+- 2026-10-08 M2: 後続課題: PlaceSearch の MKLocalSearch は task(id:) のキャンセルが伝わらず、古い検索が最後まで走る（結果は checkCancellation で捨てている）。withTaskCancellationHandler で MKLocalSearch.cancel() を呼ぶかを後続で見直す。
+- 2026-10-08 M2: 後続課題: 永続ストアを開けずインメモリで起動したことはログにしか出ず、保存した場所が再起動で消えることを利用者が知る手段がない。アプリ内での知らせ方を後続で検討する。
