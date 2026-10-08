@@ -10,15 +10,21 @@ public struct SavedConfirmationView: View {
     }
 
     public var body: some View {
-        Label(message, systemImage: "checkmark")
-            .font(.subheadline.weight(.semibold))
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .glassEffect()
-            .accessibilityElement(children: .combine)
+        Label {
+            Text(message)
+        } icon: {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(.tint)
+        }
+        .font(.subheadline.weight(.semibold))
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .glassEffect()
+        .accessibilityElement(children: .combine)
     }
 }
 
 #Preview {
     SavedConfirmationView()
+        .tint(AnosaTheme.accent)
 }

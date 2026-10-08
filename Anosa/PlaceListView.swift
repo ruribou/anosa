@@ -9,7 +9,10 @@ struct PlaceListView: View {
     let onAdd: (() -> Void)?
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
     @Query private var entities: [PlaceEntity]
+    /// 距離・徒歩分を添えるための最後のスナップショット（「行きたい」の近い数件だけ）。
+    @State private var snapshot: LocationSnapshot?
 
     private static let logger = Logger(subsystem: "com.example.anosa", category: "list")
 
@@ -27,7 +30,7 @@ struct PlaceListView: View {
     var body: some View {
         List {
             ForEach(entities) { entity in
-                PlaceRow(place: entity.place)
+                PlaceRow(detail: PlaceRowDetail(place: entity.place, snapshot: snapshot, now: .now))
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button("削除", systemImage: "trash", role: .destructive) {
                             perform { try $0.delete(id: entity.id) }
@@ -45,6 +48,19 @@ struct PlaceListView: View {
                 emptyView
             }
         }
+        .task(id: status) {
+            loadSnapshot()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                loadSnapshot()
+            }
+        }
+    }
+
+    /// 距離を出すのは「行きたい」だけなので、ほかのステータスでは読まない。
+    private func loadSnapshot() {
+        snapshot = status == .wantToGo ? LocationSnapshotStore.shared().load() : nil
     }
 
     @ViewBuilder
@@ -60,7 +76,7 @@ struct PlaceListView: View {
                     Button("場所を追加", systemImage: "plus") {
                         onAdd()
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.glassProminent)
                 }
             }
         case .visited:
@@ -80,16 +96,51 @@ struct PlaceListView: View {
 }
 
 private struct PlaceRow: View {
-    let place: Place
+    let detail: PlaceRowDetail
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(place.name)
-            if let address = place.address {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(detail.name)
+            if let address = detail.address, !address.isEmpty {
                 Text(address)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
+            hints
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .imageScale(.small)
+                .padding(.top, 2)
         }
+        .padding(.vertical, 2)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(detail.accessibilityLabel)
+    }
+
+    /// 思い出すきっかけの控えめな 1 行。横に収まらない（大きい文字）ときは縦に並べる。
+    @ViewBuilder
+    private var hints: some View {
+        if let distanceText = detail.distanceText {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) {
+                    savedAgo
+                    distance(distanceText)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    savedAgo
+                    distance(distanceText)
+                }
+            }
+        } else {
+            savedAgo
+        }
+    }
+
+    private var savedAgo: some View {
+        Label(detail.savedAgoText, systemImage: "clock")
+    }
+
+    private func distance(_ text: String) -> some View {
+        Label(text, systemImage: "figure.walk")
     }
 }
